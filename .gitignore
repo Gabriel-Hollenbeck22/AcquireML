@@ -203,6 +203,17 @@ cython_debug/
 # Temporary file for partial code execution
 tempCodeRunnerFile.py
 
+# macOS metadata
+.DS_Store
+
+# Data files — too large for GitHub (download archive.zip separately)
+data/*.Rtab
+data/*.csv
+data/*.zip
+
+# Generated outputs
+*.png
+
 # Ruff stuff:
 .ruff_cache/
 
