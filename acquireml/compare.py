@@ -15,6 +15,8 @@ import argparse
 from pathlib import Path
 
 import numpy as np
+import matplotlib
+matplotlib.use("Agg")  # non-interactive: saves to file, never tries to open a window
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from sklearn.ensemble import RandomForestClassifier
@@ -150,8 +152,8 @@ def run_comparison(
 
     plt.tight_layout()
     fig.savefig(output_path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
     print(f"\nChart saved → {output_path.resolve()}")
-    plt.show()
 
 
 # ── CLI ───────────────────────────────────────────────────────────────────────
