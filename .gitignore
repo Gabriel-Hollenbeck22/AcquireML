@@ -211,6 +211,9 @@ data/*.Rtab
 data/*.csv
 data/*.zip
 
+# Jupyter notebooks — reference material only, not part of the package
+*.ipynb
+
 # Generated outputs
 *.png
 
