@@ -35,6 +35,13 @@ explore:
 		--data-dir data \
 		--output data_overview.png
 
+## explain    — rank DNA fragments by predictive importance (AZM default)
+explain:
+	$(PYTHON) -m acquireml.explain \
+		--antibiotic azm \
+		--top-n 20 \
+		--output azm_importance.png
+
 ## test       — run the full test suite
 test:
 	$(PYTHON) -m pytest tests/ -v
