@@ -76,6 +76,27 @@ Results trained on full datasets, evaluated with 5-fold stratified cross-validat
 | Ciprofloxacin (CIP) | 3,088 | 8,873 | **96.5% ± 1.0%** |
 | Cefixime (CFX) | 3,401 | 384 | Limited (5 resistant cases) |
 
+### Holdout Validation — Tested on Strains the Model Never Saw
+
+The strongest evidence: we lock away 20% of the data, train only on the other 80%, then predict resistance for the held-out strains the model has **never seen**. This is the honest test of whether AcquireML generalises to genuinely new data.
+
+**Ciprofloxacin** — 618 unseen strains, 97.6% balanced accuracy:
+
+![CIP Holdout Validation](docs/cip_validation.png)
+
+**Azithromycin** — 696 unseen strains, 84.3% balanced accuracy:
+
+![AZM Holdout Validation](docs/azm_validation.png)
+
+| Antibiotic | Unseen Strains | Balanced Accuracy | Precision | Recall | ROC-AUC |
+|---|---|---|---|---|---|
+| Ciprofloxacin (CIP) | 618 | **97.6%** | 96.9% | 97.9% | 0.996 |
+| Azithromycin (AZM) | 696 | **84.3%** | 89.9% | 69.7% | 0.979 |
+
+The CIP model is near-clinical-grade on unseen data. The AZM model has high precision (when it flags a strain as resistant, it's right 90% of the time) but lower recall — it misses some resistant strains because they're rare (only 13% of samples). Improving AZM recall is an active area of work.
+
+Run it yourself: `make validate` or `python -m acquireml.validate --antibiotic cip`
+
 ---
 
 ## Recommending New Experiments
@@ -128,7 +149,7 @@ Data source: [Kaggle — Identifying Antibiotic Resistant Bacteria](https://www.
 git clone https://github.com/Gabriel-Hollenbeck22/AcquireML.git
 cd AcquireML
 pip install -e ".[dev]"
-make test   # should show 32 passing tests
+make test   # should show 38 passing tests
 ```
 
 ---
@@ -143,6 +164,9 @@ make run
 # Rank new unlabelled strains by experimental priority
 make recommend   # edit Makefile to point at your CSV
 
+# Rigorous holdout validation — predict on strains the model never saw
+make validate
+
 # Compare active learning vs random sampling — generates learning_curve.png
 make compare
 
@@ -152,7 +176,7 @@ make explore
 # Rank DNA fragments by predictive importance — generates azm_importance.png
 make explain
 
-# Run the full test suite (32 tests)
+# Run the full test suite (38 tests)
 make test
 ```
 
@@ -190,11 +214,13 @@ acquireml/
 │   ├── compare.py        Learning curve comparison: AL vs random sampling
 │   ├── explore.py        Dataset overview visualisation
 │   ├── explain.py        Feature importance analysis
-│   └── recommend.py      Live recommendations for new, unlabelled strains
+│   ├── recommend.py      Live recommendations for new, unlabelled strains
+│   └── validate.py       Holdout validation on genuinely unseen strains
 ├── tests/
 │   ├── test_loader.py    Data loading and alignment tests
 │   ├── test_engine.py    Engine behaviour and strategy tests
-│   └── test_recommend.py Recommender alignment, ranking, and output tests
+│   ├── test_recommend.py Recommender alignment, ranking, and output tests
+│   └── test_validate.py  Holdout split and metric tests
 ├── docs/                 Charts and figures (committed for README display)
 ├── data/                 Place archive.zip here (not included — see above)
 ├── Makefile              Developer shortcuts

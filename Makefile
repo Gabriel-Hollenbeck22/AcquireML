@@ -59,6 +59,13 @@ recommend:
 		--input-file YOUR_STRAINS.csv \
 		--top-n 20
 
+## validate     — rigorous holdout test: predict on strains the model never saw
+validate:
+	$(PYTHON) -m acquireml.validate \
+		--antibiotic azm \
+		--test-size 0.2 \
+		--output azm_validation.png
+
 ## test         — run the full test suite
 test:
 	$(PYTHON) -m pytest tests/ -v
@@ -67,4 +74,5 @@ test:
 clean:
 	rm -f learning_curve.png cip_learning_curve.png \
 	      data_overview.png azm_importance.png cip_importance.png \
-	      recommendations.csv
+	      azm_validation.png cip_validation.png \
+	      recommendations.csv demo_recommendations.csv

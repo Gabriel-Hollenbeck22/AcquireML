@@ -20,7 +20,7 @@ Thanks for your interest. AcquireML is an early-stage research project and contr
 git clone https://github.com/Gabriel-Hollenbeck22/AcquireML.git
 cd AcquireML
 pip install -e ".[dev]"
-make test   # should show 32 passing tests
+make test   # should show 38 passing tests
 ```
 
 You'll also need to download the dataset. Place `archive.zip` from [Kaggle](https://www.kaggle.com/datasets/deepcontractor/identifying-antibiotic-resistant-bacteria) in the `data/` directory. AcquireML extracts it automatically on first run.
@@ -87,10 +87,10 @@ To add a new antibiotic, add one entry: `"short_name": ("filename.Rtab", "label_
 ## Running Tests
 
 ```bash
-make test          # runs all 32 tests with verbose output
+make test          # runs all 38 tests with verbose output
 ```
 
-Tests live in `tests/`. Each module has its own test file (`test_loader.py`, `test_engine.py`, `test_recommend.py`). New functionality should come with tests — look at the existing files for the fixture pattern used.
+Tests live in `tests/`. Each module has its own test file (`test_loader.py`, `test_engine.py`, `test_recommend.py`, `test_validate.py`). New functionality should come with tests — look at the existing files for the fixture pattern used.
 
 ---
 
