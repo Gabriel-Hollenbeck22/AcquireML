@@ -78,6 +78,34 @@ Results trained on full datasets, evaluated with 5-fold stratified cross-validat
 
 ---
 
+## Recommending New Experiments
+
+Once the model is trained on historical data, you can point AcquireML at a set of **brand new, untested bacterial strains** — strains your lab has never run against a drug — and it will tell you which ones to test first.
+
+The input is a CSV file where each row is a new strain and each column is a unitig sequence (same format as the training data, binary 0/1 values). No resistance label needed — that's exactly what you're trying to find out.
+
+```bash
+python -m acquireml.recommend \
+    --antibiotic azm \
+    --input-file my_new_strains.csv \
+    --top-n 10 \
+    --output recommendations.csv
+```
+
+The output ranks every strain from most to least informative to test:
+
+```
+ Rank  Strain ID    Uncertainty  P(Resistant)  Prediction
+    1  STRAIN_047      0.9987        0.501       Resistant   ← test this first
+    2  STRAIN_012      0.9901        0.489       Sensitive
+    3  STRAIN_083      0.9764        0.523       Resistant
+   ...
+```
+
+**Rank 1** = the model is most uncertain about this strain = testing it would teach the model the most. Work down the list until your lab budget runs out.
+
+---
+
 ## Dataset
 
 We use a real-world genomic surveillance dataset of **3,786 bacterial samples** collected from patients across the USA, UK, New Zealand, Canada, and 20+ other countries between 1979 and 2017.
@@ -100,6 +128,7 @@ Data source: [Kaggle — Identifying Antibiotic Resistant Bacteria](https://www.
 git clone https://github.com/Gabriel-Hollenbeck22/AcquireML.git
 cd AcquireML
 pip install -e ".[dev]"
+make test   # should show 32 passing tests
 ```
 
 ---
@@ -111,6 +140,9 @@ pip install -e ".[dev]"
 # Run the active learning engine (Azithromycin, 10 iterations)
 make run
 
+# Rank new unlabelled strains by experimental priority
+make recommend   # edit Makefile to point at your CSV
+
 # Compare active learning vs random sampling — generates learning_curve.png
 make compare
 
@@ -120,13 +152,20 @@ make explore
 # Rank DNA fragments by predictive importance — generates azm_importance.png
 make explain
 
-# Run the full test suite (20 tests)
+# Run the full test suite (32 tests)
 make test
 ```
 
 ### Command-line options
 ```bash
-# Run for a different antibiotic
+# Recommend which new strains to test (the actual product)
+python -m acquireml.recommend \
+    --antibiotic azm \
+    --input-file my_new_strains.csv \
+    --top-n 20 \
+    --output recommendations.csv
+
+# Run the active learning simulation for a different antibiotic
 acquireml --antibiotic cip --iterations 20 --batch-size 50
 
 # Feature importance for Ciprofloxacin, top 30 features
@@ -150,10 +189,12 @@ acquireml/
 │   ├── cli.py            Terminal dashboard (the `acquireml` command)
 │   ├── compare.py        Learning curve comparison: AL vs random sampling
 │   ├── explore.py        Dataset overview visualisation
-│   └── explain.py        Feature importance analysis
+│   ├── explain.py        Feature importance analysis
+│   └── recommend.py      Live recommendations for new, unlabelled strains
 ├── tests/
 │   ├── test_loader.py    Data loading and alignment tests
-│   └── test_engine.py    Engine behaviour and strategy tests
+│   ├── test_engine.py    Engine behaviour and strategy tests
+│   └── test_recommend.py Recommender alignment, ranking, and output tests
 ├── docs/                 Charts and figures (committed for README display)
 ├── data/                 Place archive.zip here (not included — see above)
 ├── Makefile              Developer shortcuts
@@ -168,9 +209,15 @@ acquireml/
 |---|---|---|
 | 1 — Simulation Engine | ✅ Complete | Active learning loop on labelled data, proof vs random baseline |
 | 2 — Explainability | ✅ Complete | Feature importance ranking, cross-validated accuracy |
-| 3 — Live Recommendations | 🔄 In Progress | Recommend experiments for genuinely unlabelled, unseen strains |
+| 3 — Live Recommendations | ✅ Complete | Recommend experiments for genuinely unlabelled, unseen strains |
 | 4 — Multi-target Optimization | 📋 Planned | Optimize across multiple antibiotics simultaneously |
 | 5 — Lab Interface | 📋 Planned | Web UI for non-programmer lab scientists |
+
+---
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how to report bugs, add new query strategies, or extend the dataset to other antibiotics.
 
 ---
 
