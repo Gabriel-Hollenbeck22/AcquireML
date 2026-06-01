@@ -20,7 +20,7 @@ run:
 		--initial-pool 10 \
 		--batch-size 25
 
-## compare    — generate the AL vs Random Sampling learning curve chart
+## compare    — generate the AL vs Random Sampling learning curve chart (AZM)
 compare:
 	$(PYTHON) -m acquireml.compare \
 		--antibiotic azm \
@@ -28,6 +28,15 @@ compare:
 		--runs 5 \
 		--batch-size 25 \
 		--output learning_curve.png
+
+## compare-cip — generate the AL vs Random Sampling chart for Ciprofloxacin
+compare-cip:
+	$(PYTHON) -m acquireml.compare \
+		--antibiotic cip \
+		--iterations 15 \
+		--runs 5 \
+		--batch-size 50 \
+		--output cip_learning_curve.png
 
 ## explore    — generate the dataset overview chart
 explore:

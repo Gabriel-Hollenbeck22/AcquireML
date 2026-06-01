@@ -214,8 +214,9 @@ data/*.zip
 # Jupyter notebooks — reference material only, not part of the package
 *.ipynb
 
-# Generated outputs
+# Generated outputs (root-level only — docs/ images are committed intentionally)
 *.png
+!docs/*.png
 
 # Ruff stuff:
 .ruff_cache/
