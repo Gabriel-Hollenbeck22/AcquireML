@@ -14,6 +14,7 @@ from acquireml import __version__
 from acquireml.engine import ActiveLearningEngine
 from acquireml.loader import DataLoader
 from acquireml.strategies import UncertaintySampling
+from acquireml.session_cli import build_session_parser
 
 console = Console()
 
@@ -24,6 +25,10 @@ def _build_parser() -> argparse.ArgumentParser:
         description="AcquireML — Autonomous Active Learning Engine for genomic optimization",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
+    subparsers = p.add_subparsers(dest="command")
+    build_session_parser(subparsers)
+
+    # Legacy simulation flags live on the top-level parser for backward compat
     p.add_argument(
         "--antibiotic",
         choices=["azm", "cip", "cfx"],
@@ -72,6 +77,11 @@ def _delta(current: float, previous: float) -> str:
 
 def main() -> None:
     args = _build_parser().parse_args()
+
+    # Dispatch session subcommand
+    if args.command == "session":
+        args.func(args)
+        return
 
     console.print(
         Panel.fit(
