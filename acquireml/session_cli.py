@@ -48,6 +48,8 @@ def cmd_init(args: argparse.Namespace) -> None:
                 label_col=args.label_col,
                 pool_path=args.pool,
                 name=args.name,
+                patience=args.patience,
+                min_delta=args.min_delta,
             )
         except FileExistsError as exc:
             console.print(f"[bold red]Error:[/bold red] {exc}")
@@ -62,11 +64,13 @@ def cmd_init(args: argparse.Namespace) -> None:
             border_style="cyan",
         )
     )
-    console.print(f"  [bold]Name[/bold]         {summary['name']}")
-    console.print(f"  [bold]Known pool[/bold]   {summary['n_known']:,} labeled samples")
+    console.print(f"  [bold]Name[/bold]           {summary['name']}")
+    console.print(f"  [bold]Known pool[/bold]     {summary['n_known']:,} labeled samples")
     console.print(f"  [bold]Unlabeled pool[/bold] {summary['n_pool']:,} samples")
-    console.print(f"  [bold]Label column[/bold] {summary['label_col']!r}")
-    console.print(f"  [bold]Database[/bold]     {summary['db_path']}")
+    console.print(f"  [bold]Label column[/bold]   {summary['label_col']!r}")
+    console.print(f"  [bold]Stop patience[/bold]  {summary['patience']} rounds  ·  "
+                  f"[bold]Min delta[/bold] {summary['min_delta']}")
+    console.print(f"  [bold]Database[/bold]       {summary['db_path']}")
     console.print()
     console.print(
         "  Next step: [bold]acquireml session recommend --batch-size 10 "
@@ -89,12 +93,13 @@ def cmd_recommend(args: argparse.Namespace) -> None:
                 batch_size=args.batch_size,
                 output_path=args.output,
             )
+            current_round = sess._get_meta("current_round")
         except RuntimeError as exc:
             console.print(f"[bold red]Error:[/bold red] {exc}")
             sys.exit(1)
 
     table = Table(
-        title=f"Round {sess._get_meta('current_round') if not sess._con else ''} "
+        title=f"Round {current_round} "
               f"— Recommended Experiments  ·  Fill in 'label' column, then run session update",
         box=rich_box.ROUNDED,
         header_style="bold magenta",
@@ -118,9 +123,6 @@ def cmd_recommend(args: argparse.Namespace) -> None:
             "___",
         )
 
-    with Session(args.db) as sess2:
-        current_round = sess2._get_meta("current_round")
-
     console.print(
         Panel.fit(
             f"[bold cyan]AcquireML[/bold cyan] v{__version__}  ·  "
@@ -132,6 +134,11 @@ def cmd_recommend(args: argparse.Namespace) -> None:
     console.print(
         "\n  [dim]Uncertainty: 1.0 = test this first  ·  0.0 = model is confident[/dim]"
     )
+    if results.attrs.get("should_stop"):
+        console.print(
+            f"\n  [bold yellow]⚠ Stopping recommended:[/bold yellow] "
+            f"{results.attrs['stop_reason']}"
+        )
     if args.output:
         console.print(
             f"\n  CSV saved → [bold]{Path(args.output).resolve()}[/bold]"
@@ -172,7 +179,12 @@ def cmd_update(args: argparse.Namespace) -> None:
         f"[{'green' if acc >= 0.8 else 'yellow'}]{acc:.4f}[/{'green' if acc >= 0.8 else 'yellow'}] "
         f"balanced accuracy (training set)"
     )
-    if summary["n_pool"] > 0:
+    if summary.get("should_stop"):
+        console.print(
+            f"\n  [bold yellow]⚠ Stopping recommended:[/bold yellow] "
+            f"{summary['stop_reason']}"
+        )
+    elif summary["n_pool"] > 0:
         console.print(
             "\n  Next: [bold]acquireml session recommend --batch-size 10 "
             "--output recommendations.csv[/bold]"
@@ -205,6 +217,12 @@ def cmd_status(args: argparse.Namespace) -> None:
     console.print(f"  [bold]Unlabeled pool[/bold]  {s['n_pool']:,}")
     console.print(f"  [bold]Pending results[/bold] {s['n_pending']}")
     console.print(f"  [bold]Latest accuracy[/bold] {acc_str}")
+    console.print(f"  [bold]Stop patience[/bold]   {s['patience']} rounds  ·  "
+                  f"[bold]Min delta[/bold] {s['min_delta']}")
+    if s.get("should_stop"):
+        console.print(
+            f"\n  [bold yellow]⚠ Stopping recommended:[/bold yellow] {s['stop_reason']}"
+        )
     console.print(f"  [bold]Created[/bold]         {s['created_at']}")
 
 
@@ -277,6 +295,10 @@ def build_session_parser(subparsers) -> None:
                          help="Unlabeled pool file (no label column)")
     p_init.add_argument("--name", default="session",
                          help="Human-readable session name")
+    p_init.add_argument("--patience", type=int, default=3, metavar="N",
+                         help="Rounds of no improvement before stopping is recommended (default: 3)")
+    p_init.add_argument("--min-delta", type=float, default=0.005, metavar="F",
+                         help="Minimum accuracy improvement to count as progress (default: 0.005)")
     p_init.set_defaults(func=cmd_init)
 
     # -- recommend
