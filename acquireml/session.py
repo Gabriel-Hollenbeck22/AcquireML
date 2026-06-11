@@ -89,6 +89,8 @@ class Session:
                 recommended_ids TEXT NOT NULL,
                 accuracy        REAL,
                 n_known         INTEGER NOT NULL,
+                round_cost      REAL,
+                cumulative_cost REAL,
                 created_at      TEXT NOT NULL
             );
         """)
@@ -194,6 +196,14 @@ class Session:
 
     # ── Public API ────────────────────────────────────────────────────────────
 
+    def _cumulative_cost(self) -> float:
+        """Return total spend across all completed rounds."""
+        con = self._connect()
+        row = con.execute(
+            "SELECT SUM(round_cost) FROM rounds WHERE round_cost IS NOT NULL"
+        ).fetchone()
+        return float(row[0] or 0.0)
+
     def init(
         self,
         data_path: str | Path,
@@ -202,6 +212,7 @@ class Session:
         name: str = "session",
         patience: int = 3,
         min_delta: float = 0.005,
+        cost_per_sample: Optional[float] = None,
     ) -> dict:
         """Create a new session from labeled data and an optional unlabeled pool.
 
@@ -229,6 +240,8 @@ class Session:
         self._set_meta("current_round", "0")
         self._set_meta("patience", str(patience))
         self._set_meta("min_delta", str(min_delta))
+        if cost_per_sample is not None:
+            self._set_meta("cost_per_sample", str(cost_per_sample))
         self._set_meta("created_at", datetime.now(timezone.utc).isoformat())
         if pool_path:
             self._set_meta("pool_path", str(Path(pool_path).resolve()))
@@ -270,6 +283,7 @@ class Session:
             "label_col": label_col,
             "patience": patience,
             "min_delta": min_delta,
+            "cost_per_sample": cost_per_sample,
             "db_path": str(self.db_path),
         }
 
@@ -349,7 +363,8 @@ class Session:
             )
 
         con.execute(
-            "INSERT INTO rounds (round_number, recommended_ids, n_known, created_at)"
+            "INSERT INTO rounds"
+            " (round_number, recommended_ids, n_known, created_at)"
             " VALUES (?, ?, ?, ?)",
             (
                 current_round,
@@ -421,9 +436,18 @@ class Session:
             )
 
         _, _, _, accuracy = self._train()
+
+        cost_per_sample = self._get_meta("cost_per_sample")
+        round_cost: Optional[float] = None
+        cumulative_cost: Optional[float] = None
+        if cost_per_sample is not None:
+            round_cost = float(cost_per_sample) * n_updated
+            cumulative_cost = self._cumulative_cost() + round_cost
+
         con.execute(
-            "UPDATE rounds SET accuracy = ? WHERE round_number = ?",
-            (accuracy, current_round),
+            "UPDATE rounds SET accuracy = ?, round_cost = ?, cumulative_cost = ?"
+            " WHERE round_number = ?",
+            (accuracy, round_cost, cumulative_cost, current_round),
         )
         con.commit()
 
@@ -441,6 +465,8 @@ class Session:
             "n_known": n_known,
             "n_pool": n_pool,
             "accuracy": accuracy,
+            "round_cost": round_cost,
+            "cumulative_cost": cumulative_cost,
             "should_stop": should_stop,
             "stop_reason": stop_reason,
         }
@@ -457,6 +483,10 @@ class Session:
         latest = con.execute(
             "SELECT * FROM rounds ORDER BY round_number DESC LIMIT 1"
         ).fetchone()
+        cost_per_sample_raw = self._get_meta("cost_per_sample")
+        cost_per_sample = float(cost_per_sample_raw) if cost_per_sample_raw else None
+        total_cost = self._cumulative_cost() if cost_per_sample is not None else None
+
         should_stop, stop_reason = self._check_stopping()
         return {
             "name": self._get_meta("name"),
@@ -467,6 +497,8 @@ class Session:
             "latest_accuracy": latest["accuracy"] if latest else None,
             "patience": int(self._get_meta("patience") or 3),
             "min_delta": float(self._get_meta("min_delta") or 0.005),
+            "cost_per_sample": cost_per_sample,
+            "total_cost": total_cost,
             "should_stop": should_stop,
             "stop_reason": stop_reason,
             "created_at": self._get_meta("created_at"),
@@ -476,7 +508,8 @@ class Session:
         """Return all rounds as a list of dicts."""
         con = self._connect()
         rows = con.execute(
-            "SELECT round_number, n_known, accuracy, created_at"
+            "SELECT round_number, n_known, accuracy,"
+            " round_cost, cumulative_cost, created_at"
             " FROM rounds ORDER BY round_number"
         ).fetchall()
         return [dict(r) for r in rows]
