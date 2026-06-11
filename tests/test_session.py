@@ -418,3 +418,54 @@ def test_cost_stored_in_init_summary(tmp_path, labeled_csv):
     summary = sess.init(labeled_csv, label_col="outcome", cost_per_sample=250.0)
     assert summary["cost_per_sample"] == pytest.approx(250.0)
     sess.close()
+
+
+# ── batch diversity ───────────────────────────────────────────────────────────
+
+def test_diversity_weight_stored(tmp_path, labeled_csv):
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    summary = sess.init(labeled_csv, label_col="outcome", diversity_weight=0.5)
+    assert summary["diversity_weight"] == pytest.approx(0.5)
+    sess.close()
+
+
+def test_diversity_default_is_zero(tmp_path, labeled_csv):
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    sess.init(labeled_csv, label_col="outcome")
+    s = sess.status()
+    assert s["diversity_weight"] == pytest.approx(0.0)
+    sess.close()
+
+
+def test_diversity_status_shows_weight(tmp_path, labeled_csv, pool_csv):
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    sess.init(labeled_csv, label_col="outcome", pool_path=pool_csv,
+              diversity_weight=0.7)
+    s = sess.status()
+    assert s["diversity_weight"] == pytest.approx(0.7)
+    sess.close()
+
+
+def test_diverse_session_recommend_returns_batch(tmp_path, labeled_csv, pool_csv):
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    sess.init(labeled_csv, label_col="outcome", pool_path=pool_csv,
+              diversity_weight=0.5)
+    recs = sess.recommend(batch_size=5)
+    assert len(recs) == 5
+    assert len(recs["sample_id"].unique()) == 5
+    sess.close()
+
+
+def test_diverse_session_full_round(tmp_path, labeled_csv, pool_csv):
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    sess.init(labeled_csv, label_col="outcome", pool_path=pool_csv,
+              diversity_weight=0.5)
+    summaries = _run_n_rounds(sess, tmp_path, n=2, batch_size=5)
+    assert summaries[-1]["round"] == 2
+    assert summaries[-1]["n_known"] == 30
+    sess.close()
