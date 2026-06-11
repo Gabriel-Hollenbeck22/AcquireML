@@ -51,6 +51,7 @@ def cmd_init(args: argparse.Namespace) -> None:
                 patience=args.patience,
                 min_delta=args.min_delta,
                 cost_per_sample=args.cost_per_sample,
+                diversity_weight=args.diversity,
             )
         except FileExistsError as exc:
             console.print(f"[bold red]Error:[/bold red] {exc}")
@@ -73,6 +74,9 @@ def cmd_init(args: argparse.Namespace) -> None:
                   f"[bold]Min delta[/bold] {summary['min_delta']}")
     if summary["cost_per_sample"] is not None:
         console.print(f"  [bold]Cost/sample[/bold]    ${summary['cost_per_sample']:,.2f}")
+    if summary["diversity_weight"] > 0.0:
+        console.print(f"  [bold]Diversity[/bold]      {summary['diversity_weight']} "
+                      "(0=uncertainty only, 1=diversity only)")
     console.print(f"  [bold]Database[/bold]       {summary['db_path']}")
     console.print()
     console.print(
@@ -232,6 +236,9 @@ def cmd_status(args: argparse.Namespace) -> None:
             f"  [bold]Cost/sample[/bold]     ${s['cost_per_sample']:,.2f}  ·  "
             f"[bold]Total spent[/bold] ${s['total_cost']:,.2f}"
         )
+    dw = s.get("diversity_weight", 0.0)
+    console.print(f"  [bold]Diversity[/bold]       {dw} "
+                  f"({'diverse+uncertain' if dw > 0 else 'uncertainty only'})")
     if s.get("should_stop"):
         console.print(
             f"\n  [bold yellow]⚠ Stopping recommended:[/bold yellow] {s['stop_reason']}"
@@ -326,6 +333,9 @@ def build_session_parser(subparsers) -> None:
     p_init.add_argument("--cost-per-sample", type=float, default=None, metavar="COST",
                          help="Cost per lab experiment in your currency (e.g. 150.00). "
                               "Enables spend tracking. Optional.")
+    p_init.add_argument("--diversity", type=float, default=0.0, metavar="W",
+                         help="Diversity weight for batch selection, 0.0–1.0 "
+                              "(0=uncertainty only, 0.5=balanced, 1=diversity only). Default: 0.0")
     p_init.set_defaults(func=cmd_init)
 
     # -- recommend

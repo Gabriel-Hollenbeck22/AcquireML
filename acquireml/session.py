@@ -31,7 +31,7 @@ import pandas as pd
 from sklearn.metrics import balanced_accuracy_score
 
 from acquireml.generic_loader import GenericLoader
-from acquireml.strategies import UncertaintySampling, _binary_entropy
+from acquireml.strategies import UncertaintySampling, DiverseSampling, _binary_entropy
 from acquireml.explain import train_full_model
 
 DEFAULT_DB_NAME = "acquireml_session.db"
@@ -213,6 +213,7 @@ class Session:
         patience: int = 3,
         min_delta: float = 0.005,
         cost_per_sample: Optional[float] = None,
+        diversity_weight: float = 0.0,
     ) -> dict:
         """Create a new session from labeled data and an optional unlabeled pool.
 
@@ -242,6 +243,7 @@ class Session:
         self._set_meta("min_delta", str(min_delta))
         if cost_per_sample is not None:
             self._set_meta("cost_per_sample", str(cost_per_sample))
+        self._set_meta("diversity_weight", str(diversity_weight))
         self._set_meta("created_at", datetime.now(timezone.utc).isoformat())
         if pool_path:
             self._set_meta("pool_path", str(Path(pool_path).resolve()))
@@ -284,6 +286,7 @@ class Session:
             "patience": patience,
             "min_delta": min_delta,
             "cost_per_sample": cost_per_sample,
+            "diversity_weight": diversity_weight,
             "db_path": str(self.db_path),
         }
 
@@ -326,7 +329,12 @@ class Session:
         X_pool = self._get_pool_X()
 
         n_select = min(batch_size, len(X_pool))
-        strategy = UncertaintySampling()
+        diversity_weight = float(self._get_meta("diversity_weight") or 0.0)
+        strategy = (
+            DiverseSampling(diversity_weight=diversity_weight)
+            if diversity_weight > 0.0
+            else UncertaintySampling()
+        )
         local_idx = strategy.select_batch(model, X_pool.values, n_select)
 
         proba = model.predict_proba(X_pool.values)
@@ -499,6 +507,7 @@ class Session:
             "min_delta": float(self._get_meta("min_delta") or 0.005),
             "cost_per_sample": cost_per_sample,
             "total_cost": total_cost,
+            "diversity_weight": float(self._get_meta("diversity_weight") or 0.0),
             "should_stop": should_stop,
             "stop_reason": stop_reason,
             "created_at": self._get_meta("created_at"),

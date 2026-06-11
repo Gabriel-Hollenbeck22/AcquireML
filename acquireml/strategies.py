@@ -83,3 +83,83 @@ class UncertaintySampling(QueryStrategy):
         proba = model.predict_proba(X_pool)
         entropy = _binary_entropy(proba)
         return np.argsort(entropy)[::-1][:n]
+
+
+class DiverseSampling(QueryStrategy):
+    """Uncertainty sampling with a diversity term to avoid clustered batches.
+
+    Pure uncertainty sampling can recommend N samples that are all very similar
+    to each other — wasteful when the lab runs them in parallel. This strategy
+    blends uncertainty with a greedy distance penalty so each pick is both
+    informative AND as far as possible from the samples already selected in
+    this batch.
+
+    Algorithm (greedy):
+        1. Score all pool samples by uncertainty.
+        2. Pick the most uncertain sample first.
+        3. For each subsequent pick, score candidates as:
+               (1 - diversity_weight) * uncertainty
+             + diversity_weight * min_distance_to_selected  (normalised to [0,1])
+           and pick the highest scorer.
+
+    Parameters
+    ----------
+    diversity_weight : float in [0, 1]
+        0.0 = identical to UncertaintySampling.
+        1.0 = greedy maximum-distance selection (ignores uncertainty).
+        0.5 (default) balances both objectives.
+    """
+
+    def __init__(self, diversity_weight: float = 0.5) -> None:
+        if not 0.0 <= diversity_weight <= 1.0:
+            raise ValueError(
+                f"diversity_weight must be in [0, 1], got {diversity_weight}"
+            )
+        self.diversity_weight = diversity_weight
+
+    def select_batch(
+        self,
+        model: BaseEstimator,
+        X_pool: np.ndarray,
+        n: int,
+    ) -> np.ndarray:
+        n = min(n, len(X_pool))
+        proba = model.predict_proba(X_pool)
+        uncertainty = _binary_entropy(proba)
+
+        # Normalise uncertainty to [0, 1]
+        u_range = uncertainty.max() - uncertainty.min()
+        if u_range > 0:
+            uncertainty_norm = (uncertainty - uncertainty.min()) / u_range
+        else:
+            uncertainty_norm = uncertainty.copy()
+
+        selected: list[int] = []
+        # Min distances from each candidate to the selected set (start at inf)
+        min_dist = np.full(len(X_pool), np.inf)
+
+        for _ in range(n):
+            if not selected:
+                # First pick: highest uncertainty
+                idx = int(np.argmax(uncertainty_norm))
+            else:
+                # Update min distances using the last selected point
+                last = X_pool[selected[-1]]
+                dists = np.linalg.norm(X_pool - last, axis=1)
+                min_dist = np.minimum(min_dist, dists)
+
+                # Normalise distances to [0, 1]
+                d_max = min_dist.max()
+                dist_norm = min_dist / d_max if d_max > 0 else min_dist.copy()
+
+                score = (
+                    (1.0 - self.diversity_weight) * uncertainty_norm
+                    + self.diversity_weight * dist_norm
+                )
+                # Zero out already-selected indices
+                score[selected] = -np.inf
+                idx = int(np.argmax(score))
+
+            selected.append(idx)
+
+        return np.array(selected, dtype=int)

@@ -3,7 +3,7 @@ import pytest
 from sklearn.ensemble import RandomForestClassifier
 
 from acquireml.engine import ActiveLearningEngine
-from acquireml.strategies import UncertaintySampling, _binary_entropy
+from acquireml.strategies import UncertaintySampling, DiverseSampling, _binary_entropy
 
 
 @pytest.fixture()
@@ -134,3 +134,74 @@ class _DummyClassifier:
 
     def predict_proba(self, X):
         return self._probas
+
+
+# ── DiverseSampling ──────────────────────────────────────────────────────────
+
+def test_diverse_sampling_returns_correct_count():
+    strategy = DiverseSampling(diversity_weight=0.5)
+    clf = _DummyClassifier(np.tile([0.5, 0.5], (20, 1)))
+    X_pool = np.random.default_rng(0).random((20, 5))
+    selected = strategy.select_batch(clf, X_pool, n=5)
+    assert len(selected) == 5
+
+
+def test_diverse_sampling_no_duplicates():
+    strategy = DiverseSampling(diversity_weight=0.5)
+    clf = _DummyClassifier(np.tile([0.5, 0.5], (20, 1)))
+    X_pool = np.random.default_rng(0).random((20, 5))
+    selected = strategy.select_batch(clf, X_pool, n=10)
+    assert len(set(selected)) == len(selected)
+
+
+def test_diverse_sampling_indices_in_range():
+    strategy = DiverseSampling(diversity_weight=0.5)
+    clf = _DummyClassifier(np.tile([0.5, 0.5], (15, 1)))
+    X_pool = np.random.default_rng(1).random((15, 4))
+    selected = strategy.select_batch(clf, X_pool, n=5)
+    assert all(0 <= i < 15 for i in selected)
+
+
+def test_diverse_weight_zero_picks_highest_uncertainty():
+    """diversity_weight=0 should pick only from the most uncertain samples."""
+    probas = np.column_stack([
+        np.linspace(0.1, 0.9, 10),
+        np.linspace(0.9, 0.1, 10),
+    ])
+    clf = _DummyClassifier(probas)
+    X_pool = np.random.default_rng(2).random((10, 3))
+
+    from acquireml.strategies import _binary_entropy
+    entropy = _binary_entropy(probas)
+    top3_threshold = np.sort(entropy)[::-1][2]  # 3rd highest entropy value
+
+    d_idx = DiverseSampling(diversity_weight=0.0).select_batch(clf, X_pool, n=3)
+    for i in d_idx:
+        assert entropy[i] >= top3_threshold - 1e-9, (
+            "diversity_weight=0 should only pick high-entropy samples"
+        )
+
+
+def test_diverse_sampling_spreads_across_space():
+    """With high diversity weight, selected points should be further apart
+    than pure uncertainty sampling on a dataset where uncertainty is clustered."""
+    rng = np.random.default_rng(42)
+    # Two tight clusters far apart — uncertain samples all in cluster A
+    cluster_a = rng.normal(loc=[0, 0], scale=0.1, size=(10, 2))
+    cluster_b = rng.normal(loc=[10, 10], scale=0.1, size=(10, 2))
+    X_pool = np.vstack([cluster_a, cluster_b])
+
+    # All samples equally uncertain
+    probas = np.tile([0.5, 0.5], (20, 1))
+    clf = _DummyClassifier(probas)
+
+    diverse = DiverseSampling(diversity_weight=0.9).select_batch(clf, X_pool, n=4)
+    # Should pick from both clusters, not all from one
+    from_a = sum(1 for i in diverse if i < 10)
+    from_b = sum(1 for i in diverse if i >= 10)
+    assert from_a >= 1 and from_b >= 1, "Diverse sampling should span both clusters"
+
+
+def test_diverse_sampling_invalid_weight_raises():
+    with pytest.raises(ValueError, match="diversity_weight"):
+        DiverseSampling(diversity_weight=1.5)
