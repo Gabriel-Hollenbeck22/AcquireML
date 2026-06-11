@@ -159,12 +159,49 @@ class Session:
 
     # ── Public API ────────────────────────────────────────────────────────────
 
+    # ── Stopping criteria ────────────────────────────────────────────────────
+
+    def _check_stopping(self) -> tuple[bool, str]:
+        """Return (should_stop, reason) based on recent accuracy history.
+
+        Compares the net accuracy improvement over the last `patience` completed
+        rounds. If that improvement is below `min_delta`, the model has plateaued
+        and further experiments are unlikely to help.
+        """
+        patience = int(self._get_meta("patience") or 3)
+        min_delta = float(self._get_meta("min_delta") or 0.005)
+
+        con = self._connect()
+        rows = con.execute(
+            "SELECT accuracy FROM rounds WHERE accuracy IS NOT NULL"
+            " ORDER BY round_number DESC LIMIT ?",
+            (patience,),
+        ).fetchall()
+
+        if len(rows) < patience:
+            return False, ""
+
+        accuracies = [r["accuracy"] for r in reversed(rows)]
+        improvement = accuracies[-1] - accuracies[0]
+
+        if improvement < min_delta:
+            return True, (
+                f"Accuracy improved by only {improvement:+.4f} over the last "
+                f"{patience} rounds (threshold: {min_delta}). "
+                "The model has likely plateaued — consider stopping."
+            )
+        return False, ""
+
+    # ── Public API ────────────────────────────────────────────────────────────
+
     def init(
         self,
         data_path: str | Path,
         label_col: str,
         pool_path: Optional[str | Path] = None,
         name: str = "session",
+        patience: int = 3,
+        min_delta: float = 0.005,
     ) -> dict:
         """Create a new session from labeled data and an optional unlabeled pool.
 
@@ -190,6 +227,8 @@ class Session:
         self._set_meta("data_path", str(Path(data_path).resolve()))
         self._set_meta("label_col", label_col)
         self._set_meta("current_round", "0")
+        self._set_meta("patience", str(patience))
+        self._set_meta("min_delta", str(min_delta))
         self._set_meta("created_at", datetime.now(timezone.utc).isoformat())
         if pool_path:
             self._set_meta("pool_path", str(Path(pool_path).resolve()))
@@ -229,6 +268,8 @@ class Session:
             "n_known": len(X),
             "n_pool": n_pool,
             "label_col": label_col,
+            "patience": patience,
+            "min_delta": min_delta,
             "db_path": str(self.db_path),
         }
 
@@ -322,6 +363,10 @@ class Session:
         if output_path:
             results.to_csv(output_path, index=False)
 
+        should_stop, stop_reason = self._check_stopping()
+        results.attrs["should_stop"] = should_stop
+        results.attrs["stop_reason"] = stop_reason
+
         return results
 
     def update(self, results_path: str | Path) -> dict:
@@ -389,12 +434,15 @@ class Session:
             "SELECT COUNT(*) FROM samples WHERE status = 'pool'"
         ).fetchone()[0]
 
+        should_stop, stop_reason = self._check_stopping()
         return {
             "round": current_round,
             "n_returned": n_updated,
             "n_known": n_known,
             "n_pool": n_pool,
             "accuracy": accuracy,
+            "should_stop": should_stop,
+            "stop_reason": stop_reason,
         }
 
     def status(self) -> dict:
@@ -409,6 +457,7 @@ class Session:
         latest = con.execute(
             "SELECT * FROM rounds ORDER BY round_number DESC LIMIT 1"
         ).fetchone()
+        should_stop, stop_reason = self._check_stopping()
         return {
             "name": self._get_meta("name"),
             "current_round": int(self._get_meta("current_round") or 0),
@@ -416,6 +465,10 @@ class Session:
             "n_pool": counts["pool"],
             "n_pending": counts["pending"],
             "latest_accuracy": latest["accuracy"] if latest else None,
+            "patience": int(self._get_meta("patience") or 3),
+            "min_delta": float(self._get_meta("min_delta") or 0.005),
+            "should_stop": should_stop,
+            "stop_reason": stop_reason,
             "created_at": self._get_meta("created_at"),
         }
 

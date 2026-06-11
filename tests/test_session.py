@@ -246,7 +246,8 @@ def test_two_full_rounds(session, tmp_path):
 def test_status_fields(session):
     s = session.status()
     for key in ("name", "current_round", "n_known", "n_pool", "n_pending",
-                "latest_accuracy", "created_at"):
+                "latest_accuracy", "patience", "min_delta",
+                "should_stop", "stop_reason", "created_at"):
         assert key in s
     session.close()
 
@@ -254,3 +255,98 @@ def test_status_fields(session):
 def test_history_empty_before_rounds(session):
     assert session.history() == []
     session.close()
+
+
+# ── stopping criteria ─────────────────────────────────────────────────────────
+
+def _run_n_rounds(session, tmp_path, n, batch_size=5):
+    """Helper: run n full rounds, returns list of update summaries."""
+    summaries = []
+    for i in range(n):
+        recs = session.recommend(batch_size=batch_size)
+        d = tmp_path / f"r{i}"
+        d.mkdir(exist_ok=True)
+        results_path = _make_results(recs, d)
+        summaries.append(session.update(results_path))
+    return summaries
+
+
+def test_no_stop_before_patience_rounds(tmp_path, labeled_csv, pool_csv):
+    """Should not flag stopping until patience rounds have completed."""
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    sess.init(labeled_csv, label_col="outcome", pool_path=pool_csv,
+              patience=3, min_delta=0.005)
+    summaries = _run_n_rounds(sess, tmp_path, n=2, batch_size=5)
+    assert summaries[-1]["should_stop"] is False
+    sess.close()
+
+
+def test_stop_flagged_when_plateau(tmp_path, labeled_csv, pool_csv):
+    """Should flag stopping when accuracy hasn't improved meaningfully."""
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    sess.init(labeled_csv, label_col="outcome", pool_path=pool_csv,
+              patience=3, min_delta=0.999)  # impossibly high threshold → always plateaued
+    summaries = _run_n_rounds(sess, tmp_path, n=3, batch_size=5)
+    assert summaries[-1]["should_stop"] is True
+    assert summaries[-1]["stop_reason"] != ""
+    sess.close()
+
+
+def test_stop_reason_contains_round_count(tmp_path, labeled_csv, pool_csv):
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    sess.init(labeled_csv, label_col="outcome", pool_path=pool_csv,
+              patience=3, min_delta=0.999)
+    summaries = _run_n_rounds(sess, tmp_path, n=3, batch_size=5)
+    assert "3" in summaries[-1]["stop_reason"]
+    sess.close()
+
+
+def test_status_reflects_stopping(tmp_path, labeled_csv, pool_csv):
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    sess.init(labeled_csv, label_col="outcome", pool_path=pool_csv,
+              patience=3, min_delta=0.999)
+    _run_n_rounds(sess, tmp_path, n=3, batch_size=5)
+    s = sess.status()
+    assert s["should_stop"] is True
+    assert s["patience"] == 3
+    assert s["min_delta"] == 0.999
+    sess.close()
+
+
+def test_custom_patience_and_min_delta_stored(tmp_path, labeled_csv):
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    sess.init(labeled_csv, label_col="outcome", patience=5, min_delta=0.02)
+    s = sess.status()
+    assert s["patience"] == 5
+    assert s["min_delta"] == 0.02
+    sess.close()
+
+
+def test_recommend_attrs_carry_stopping(tmp_path, labeled_csv, pool_csv):
+    """recommend() DataFrame attrs should carry should_stop and stop_reason."""
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    sess.init(labeled_csv, label_col="outcome", pool_path=pool_csv,
+              patience=3, min_delta=0.999)
+    _run_n_rounds(sess, tmp_path, n=3, batch_size=5)
+    recs = sess.recommend(batch_size=5)
+    assert "should_stop" in recs.attrs
+    assert "stop_reason" in recs.attrs
+    assert recs.attrs["should_stop"] is True
+    sess.close()
+
+
+def test_update_returns_should_stop(tmp_path, labeled_csv, pool_csv):
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    sess.init(labeled_csv, label_col="outcome", pool_path=pool_csv,
+              patience=3, min_delta=0.999)
+    summaries = _run_n_rounds(sess, tmp_path, n=3, batch_size=5)
+    assert "should_stop" in summaries[-1]
+    assert "stop_reason" in summaries[-1]
+    sess.close()
