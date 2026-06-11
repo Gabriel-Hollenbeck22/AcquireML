@@ -50,6 +50,7 @@ def cmd_init(args: argparse.Namespace) -> None:
                 name=args.name,
                 patience=args.patience,
                 min_delta=args.min_delta,
+                cost_per_sample=args.cost_per_sample,
             )
         except FileExistsError as exc:
             console.print(f"[bold red]Error:[/bold red] {exc}")
@@ -70,6 +71,8 @@ def cmd_init(args: argparse.Namespace) -> None:
     console.print(f"  [bold]Label column[/bold]   {summary['label_col']!r}")
     console.print(f"  [bold]Stop patience[/bold]  {summary['patience']} rounds  ·  "
                   f"[bold]Min delta[/bold] {summary['min_delta']}")
+    if summary["cost_per_sample"] is not None:
+        console.print(f"  [bold]Cost/sample[/bold]    ${summary['cost_per_sample']:,.2f}")
     console.print(f"  [bold]Database[/bold]       {summary['db_path']}")
     console.print()
     console.print(
@@ -179,6 +182,11 @@ def cmd_update(args: argparse.Namespace) -> None:
         f"[{'green' if acc >= 0.8 else 'yellow'}]{acc:.4f}[/{'green' if acc >= 0.8 else 'yellow'}] "
         f"balanced accuracy (training set)"
     )
+    if summary.get("round_cost") is not None:
+        console.print(
+            f"  [bold]Round cost[/bold]          ${summary['round_cost']:,.2f}  ·  "
+            f"[bold]Total spent[/bold] ${summary['cumulative_cost']:,.2f}"
+        )
     if summary.get("should_stop"):
         console.print(
             f"\n  [bold yellow]⚠ Stopping recommended:[/bold yellow] "
@@ -219,6 +227,11 @@ def cmd_status(args: argparse.Namespace) -> None:
     console.print(f"  [bold]Latest accuracy[/bold] {acc_str}")
     console.print(f"  [bold]Stop patience[/bold]   {s['patience']} rounds  ·  "
                   f"[bold]Min delta[/bold] {s['min_delta']}")
+    if s.get("cost_per_sample") is not None:
+        console.print(
+            f"  [bold]Cost/sample[/bold]     ${s['cost_per_sample']:,.2f}  ·  "
+            f"[bold]Total spent[/bold] ${s['total_cost']:,.2f}"
+        )
     if s.get("should_stop"):
         console.print(
             f"\n  [bold yellow]⚠ Stopping recommended:[/bold yellow] {s['stop_reason']}"
@@ -241,6 +254,8 @@ def cmd_history(args: argparse.Namespace) -> None:
         console.print("No rounds completed yet.")
         return
 
+    show_cost = any(r.get("round_cost") is not None for r in rows)
+
     table = Table(
         title="Session History",
         box=rich_box.ROUNDED,
@@ -250,17 +265,26 @@ def cmd_history(args: argparse.Namespace) -> None:
     table.add_column("Round", justify="right", style="dim")
     table.add_column("Known Pool", justify="right")
     table.add_column("Bal. Accuracy", justify="right", style="bold")
+    if show_cost:
+        table.add_column("Round Cost", justify="right", style="green")
+        table.add_column("Total Spent", justify="right", style="bold green")
     table.add_column("Timestamp", justify="left", style="dim")
 
     for r in rows:
         acc = r["accuracy"]
         acc_str = f"{acc:.4f}" if acc is not None else "pending"
-        table.add_row(
+        row_data = [
             str(r["round_number"]),
             f"{r['n_known']:,}",
             acc_str,
-            r["created_at"][:19].replace("T", " "),
-        )
+        ]
+        if show_cost:
+            rc = r.get("round_cost")
+            cc = r.get("cumulative_cost")
+            row_data.append(f"${rc:,.2f}" if rc is not None else "—")
+            row_data.append(f"${cc:,.2f}" if cc is not None else "—")
+        row_data.append(r["created_at"][:19].replace("T", " "))
+        table.add_row(*row_data)
 
     console.print(
         Panel.fit(
@@ -299,6 +323,9 @@ def build_session_parser(subparsers) -> None:
                          help="Rounds of no improvement before stopping is recommended (default: 3)")
     p_init.add_argument("--min-delta", type=float, default=0.005, metavar="F",
                          help="Minimum accuracy improvement to count as progress (default: 0.005)")
+    p_init.add_argument("--cost-per-sample", type=float, default=None, metavar="COST",
+                         help="Cost per lab experiment in your currency (e.g. 150.00). "
+                              "Enables spend tracking. Optional.")
     p_init.set_defaults(func=cmd_init)
 
     # -- recommend

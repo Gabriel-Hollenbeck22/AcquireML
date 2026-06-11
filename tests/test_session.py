@@ -350,3 +350,71 @@ def test_update_returns_should_stop(tmp_path, labeled_csv, pool_csv):
     assert "should_stop" in summaries[-1]
     assert "stop_reason" in summaries[-1]
     sess.close()
+
+
+# ── cost tracking ─────────────────────────────────────────────────────────────
+
+def test_no_cost_when_not_configured(tmp_path, labeled_csv, pool_csv):
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    sess.init(labeled_csv, label_col="outcome", pool_path=pool_csv)
+    summaries = _run_n_rounds(sess, tmp_path, n=1, batch_size=5)
+    assert summaries[0]["round_cost"] is None
+    assert summaries[0]["cumulative_cost"] is None
+    s = sess.status()
+    assert s["cost_per_sample"] is None
+    assert s["total_cost"] is None
+    sess.close()
+
+
+def test_round_cost_equals_n_returned_times_cost(tmp_path, labeled_csv, pool_csv):
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    sess.init(labeled_csv, label_col="outcome", pool_path=pool_csv,
+              cost_per_sample=200.0)
+    summaries = _run_n_rounds(sess, tmp_path, n=1, batch_size=5)
+    assert summaries[0]["round_cost"] == pytest.approx(200.0 * 5)
+    sess.close()
+
+
+def test_cumulative_cost_accumulates(tmp_path, labeled_csv, pool_csv):
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    sess.init(labeled_csv, label_col="outcome", pool_path=pool_csv,
+              cost_per_sample=100.0)
+    summaries = _run_n_rounds(sess, tmp_path, n=2, batch_size=5)
+    assert summaries[0]["cumulative_cost"] == pytest.approx(500.0)
+    assert summaries[1]["cumulative_cost"] == pytest.approx(1000.0)
+    sess.close()
+
+
+def test_status_shows_total_cost(tmp_path, labeled_csv, pool_csv):
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    sess.init(labeled_csv, label_col="outcome", pool_path=pool_csv,
+              cost_per_sample=50.0)
+    _run_n_rounds(sess, tmp_path, n=2, batch_size=5)
+    s = sess.status()
+    assert s["cost_per_sample"] == pytest.approx(50.0)
+    assert s["total_cost"] == pytest.approx(500.0)
+    sess.close()
+
+
+def test_history_includes_cost_columns(tmp_path, labeled_csv, pool_csv):
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    sess.init(labeled_csv, label_col="outcome", pool_path=pool_csv,
+              cost_per_sample=75.0)
+    _run_n_rounds(sess, tmp_path, n=2, batch_size=5)
+    hist = sess.history()
+    assert hist[0]["round_cost"] == pytest.approx(375.0)
+    assert hist[1]["cumulative_cost"] == pytest.approx(750.0)
+    sess.close()
+
+
+def test_cost_stored_in_init_summary(tmp_path, labeled_csv):
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    summary = sess.init(labeled_csv, label_col="outcome", cost_per_sample=250.0)
+    assert summary["cost_per_sample"] == pytest.approx(250.0)
+    sess.close()
