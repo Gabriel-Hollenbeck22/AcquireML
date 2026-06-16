@@ -1,6 +1,7 @@
 """Tests for GenericLoader — format auto-detection and loading."""
 from __future__ import annotations
 
+import gzip
 import textwrap
 from pathlib import Path
 
@@ -69,6 +70,32 @@ def rtab_file(tmp_path: Path) -> Path:
     return p
 
 
+VCF_BODY = textwrap.dedent("""\
+    ##fileformat=VCFv4.2
+    ##source=GATK
+    #CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tS0\tS1\tS2
+    1\t100\t.\tA\tT\t50\tPASS\t.\tGT\t0/0\t0/1\t1/1
+    1\t200\trs123\tG\tC\t60\tPASS\t.\tGT\t0/1\t0/0\t./.
+    2\t300\t.\tC\tG\t70\tPASS\t.\tGT\t1/1\t1/0\t0/0
+""")
+
+
+@pytest.fixture()
+def vcf_file(tmp_path: Path) -> Path:
+    """Minimal VCF: 3 variants × 3 samples, with a missing genotype."""
+    p = tmp_path / "variants.vcf"
+    p.write_text(VCF_BODY)
+    return p
+
+
+@pytest.fixture()
+def vcf_gz_file(tmp_path: Path) -> Path:
+    p = tmp_path / "variants.vcf.gz"
+    with gzip.open(p, "wt") as fh:
+        fh.write(VCF_BODY)
+    return p
+
+
 # ── Format detection ──────────────────────────────────────────────────────────
 
 def test_detect_csv(csv_file):
@@ -85,6 +112,14 @@ def test_detect_excel(excel_file):
 
 def test_detect_rtab(rtab_file):
     assert GenericLoader(rtab_file)._detect_format() == "rtab"
+
+
+def test_detect_vcf(vcf_file):
+    assert GenericLoader(vcf_file)._detect_format() == "vcf"
+
+
+def test_detect_vcf_gz(vcf_gz_file):
+    assert GenericLoader(vcf_gz_file)._detect_format() == "vcf"
 
 
 def test_sniff_tab_delimited(tmp_path):
@@ -147,6 +182,58 @@ def test_rtab_load_transposes(rtab_file):
 def test_rtab_values_are_uint8(rtab_file):
     X, _ = GenericLoader(rtab_file).load()
     assert X.dtypes.unique()[0] == np.uint8
+
+
+# ── VCF loading ───────────────────────────────────────────────────────────────
+
+def test_vcf_load_shape(vcf_file):
+    X, y = GenericLoader(vcf_file).load()
+    assert X.shape == (3, 3)
+    assert y is None
+    assert list(X.index) == ["S0", "S1", "S2"]
+
+
+def test_vcf_values_are_uint8(vcf_file):
+    X, _ = GenericLoader(vcf_file).load()
+    assert X.dtypes.unique()[0] == np.uint8
+
+
+def test_vcf_genotype_presence_encoding(vcf_file):
+    X, _ = GenericLoader(vcf_file).load()
+    # variant 1:100_A>T — S0 is 0/0 (absent), S1 and S2 carry an alt allele
+    col = [c for c in X.columns if c.startswith("1:100")][0]
+    assert X.loc["S0", col] == 0
+    assert X.loc["S1", col] == 1
+    assert X.loc["S2", col] == 1
+
+
+def test_vcf_missing_genotype_treated_as_absent(vcf_file):
+    X, _ = GenericLoader(vcf_file).load()
+    assert X.loc["S2", "rs123"] == 0
+
+
+def test_vcf_uses_id_column_when_present(vcf_file):
+    X, _ = GenericLoader(vcf_file).load()
+    assert "rs123" in X.columns
+
+
+def test_vcf_falls_back_to_chrom_pos_when_id_missing(vcf_file):
+    X, _ = GenericLoader(vcf_file).load()
+    assert any(c.startswith("1:100") for c in X.columns)
+    assert any(c.startswith("2:300") for c in X.columns)
+
+
+def test_vcf_gz_loads_same_as_plain(vcf_file, vcf_gz_file):
+    X_plain, _ = GenericLoader(vcf_file).load()
+    X_gz, _ = GenericLoader(vcf_gz_file).load()
+    pd.testing.assert_frame_equal(X_plain, X_gz)
+
+
+def test_vcf_missing_chrom_header_raises(tmp_path):
+    p = tmp_path / "broken.vcf"
+    p.write_text("##fileformat=VCFv4.2\n1\t100\t.\tA\tT\t50\tPASS\t.\tGT\t0/0\n")
+    with pytest.raises(ValueError, match="CHROM"):
+        GenericLoader(p).load()
 
 
 # ── Error handling ────────────────────────────────────────────────────────────

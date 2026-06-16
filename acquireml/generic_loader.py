@@ -1,14 +1,17 @@
 """
 generic_loader.py — Format-agnostic data loader
 
-Accepts .csv, .tsv, .xlsx/.xls, and .Rtab files. Format is detected from
-the file extension; ambiguous extensions are resolved by content sniffing.
+Accepts .csv, .tsv, .xlsx/.xls, .Rtab, and .vcf/.vcf.gz files. Format is
+detected from the file extension; ambiguous extensions are resolved by
+content sniffing.
 
 Returns (X, y) in the same convention as DataLoader: rows=samples,
-columns=features. y is None when no label_col is specified (unlabeled pool).
+columns=features. y is None when no label_col is specified (unlabeled pool),
+and always None for Rtab/VCF since those formats carry no phenotype column.
 """
 from __future__ import annotations
 
+import gzip
 from pathlib import Path
 from typing import Optional, Tuple
 
@@ -39,6 +42,9 @@ class GenericLoader:
     # ── Format detection ──────────────────────────────────────────────────────
 
     def _detect_format(self) -> str:
+        name = self.data_path.name.lower()
+        if name.endswith(".vcf") or name.endswith(".vcf.gz"):
+            return "vcf"
         ext = self.data_path.suffix.lower()
         if ext == ".rtab":
             return "rtab"
@@ -61,6 +67,52 @@ class GenericLoader:
         X_raw = pd.read_csv(self.data_path, sep=" ", index_col=0, low_memory=False)
         return X_raw.T.astype(np.uint8)
 
+    def _read_vcf(self) -> pd.DataFrame:
+        """Parse a standard VCF (GATK/bcftools output) into a binary presence matrix.
+
+        Each variant becomes a feature column (1 = sample carries at least one
+        non-reference allele at that site, 0 = homozygous reference or missing
+        genotype), matching the Rtab convention so VCF data is a drop-in
+        alternative to unitig matrices.
+        """
+        opener = gzip.open if self.data_path.name.lower().endswith(".gz") else open
+
+        samples: list[str] = []
+        variant_ids: list[str] = []
+        rows: list[list[int]] = []
+
+        with opener(self.data_path, "rt") as fh:
+            for line in fh:
+                line = line.rstrip("\n")
+                if not line or line.startswith("##"):
+                    continue
+                if line.startswith("#CHROM"):
+                    samples = line.lstrip("#").split("\t")[9:]
+                    continue
+                fields = line.split("\t")
+                chrom, pos, vid, ref, alt = fields[:5]
+                fmt_fields = fields[8].split(":")
+                gt_idx = fmt_fields.index("GT") if "GT" in fmt_fields else 0
+
+                variant_name = vid if vid != "." else f"{chrom}:{pos}_{ref}>{alt}"
+                presence = [
+                    1
+                    if any(
+                        a not in ("0", ".", "")
+                        for a in sample_field.split(":")[gt_idx].replace("|", "/").split("/")
+                    )
+                    else 0
+                    for sample_field in fields[9:]
+                ]
+                variant_ids.append(variant_name)
+                rows.append(presence)
+
+        if not samples:
+            raise ValueError(f"No #CHROM header line found in VCF file: {self.data_path}")
+
+        X = pd.DataFrame(rows, index=variant_ids, columns=samples, dtype=np.uint8)
+        return X.T
+
     def _read_tabular(self, fmt: str) -> pd.DataFrame:
         if fmt == "tsv":
             return pd.read_csv(self.data_path, sep="\t", index_col=0)
@@ -82,6 +134,9 @@ class GenericLoader:
 
         if fmt == "rtab":
             X = self._read_rtab()
+            y = None
+        elif fmt == "vcf":
+            X = self._read_vcf()
             y = None
         else:
             df = self._read_tabular(fmt)
