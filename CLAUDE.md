@@ -143,12 +143,12 @@ across many features (matches its multi-gene biology).
 ## Branch Map (as of 2026-06-16)
 
 - `main` — Phases 1–3 + holdout validation + real-world engine + stopping criteria +
-  cost tracking + batch diversity + round report + VCF support + model selection.
-  137 tests. Stable. Pushed to GitHub.
-- All seven feature branches (`feature/real-world-engine`, `feature/stopping-criteria`,
+  cost tracking + batch diversity + round report + VCF support + model selection +
+  calibration. 148 tests. Stable. Pushed to GitHub.
+- All eight feature branches (`feature/real-world-engine`, `feature/stopping-criteria`,
   `feature/cost-tracking`, `feature/batch-diversity`, `feature/round-report`,
-  `feature/vcf-support`, `feature/model-selection`) are merged into `main`. They still
-  exist as branches but are no longer ahead of main.
+  `feature/vcf-support`, `feature/model-selection`, `feature/calibration`) are merged
+  into `main`. They still exist as branches but are no longer ahead of main.
 - Reminder: after merging a feature branch into local main, always `git push origin main`
   right away — local merges are invisible on GitHub until pushed.
 
@@ -183,14 +183,17 @@ Building one at a time, each on its own branch, merged to main once 100% tested:
    same binary presence/absence matrix convention as Rtab — merged
 6. ✅ Model selection — `--model rf|gbm|lr|svm` flag on `session init`, built via
    `build_estimator()` in explain.py — merged
-7. Calibration — wrap model in CalibratedClassifierCV for better uncertainty estimates — **next up**
-8. Demo mode / synthetic data generator — try the tool without real data
+7. ✅ Calibration — `--calibrate`/`--calibration-method sigmoid|isotonic` on `session init`
+   wraps the model in CalibratedClassifierCV, with automatic fallback when a round's known
+   pool is too small/imbalanced for cross-validation — merged
+8. Demo mode / synthetic data generator — try the tool without real data — **next up**
 
 ## Current Status & What's Next
 
-137 tests passing on main. Repo still private. All work pushed to GitHub.
+148 tests passing on main. Repo still private. All work pushed to GitHub.
 
-**Technical:** Feature branch work ongoing (see roadmap above). Next feature to build: calibration.
+**Technical:** Feature branch work ongoing (see roadmap above). Next (and last roadmap)
+feature to build: demo mode / synthetic data generator.
 
 **Outreach (paused pending repo going public):**
 - Pre-outreach prep: flip repo public (day before first email), write a founder's one-pager.
