@@ -469,3 +469,46 @@ def test_diverse_session_full_round(tmp_path, labeled_csv, pool_csv):
     assert summaries[-1]["round"] == 2
     assert summaries[-1]["n_known"] == 30
     sess.close()
+
+
+# ── round report ──────────────────────────────────────────────────────────────
+
+def test_default_report_path_stored(tmp_path, labeled_csv):
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    summary = sess.init(labeled_csv, label_col="outcome")
+    assert summary["report_path"] == str(tmp_path / "s_report.png")
+    sess.close()
+
+
+def test_custom_report_path_stored(tmp_path, labeled_csv):
+    db = tmp_path / "s.db"
+    custom = tmp_path / "charts" / "progress.png"
+    custom.parent.mkdir()
+    sess = Session(db)
+    summary = sess.init(labeled_csv, label_col="outcome", report_path=custom)
+    assert summary["report_path"] == str(custom)
+    sess.close()
+
+
+def test_update_writes_report_png(session, tmp_path):
+    recs = session.recommend(batch_size=5)
+    results_path = _make_results(recs, tmp_path)
+    summary = session.update(results_path)
+    assert Path(summary["report_path"]).exists()
+    session.close()
+
+
+def test_status_includes_report_path(session):
+    s = session.status()
+    assert s["report_path"].endswith("_report.png")
+    session.close()
+
+
+def test_report_updates_across_rounds(session, tmp_path):
+    summaries = _run_n_rounds(session, tmp_path, n=2, batch_size=5)
+    report_path = Path(summaries[-1]["report_path"])
+    assert report_path.exists()
+    mtime_after_round_2 = report_path.stat().st_mtime
+    assert mtime_after_round_2 > 0
+    session.close()

@@ -52,6 +52,7 @@ def cmd_init(args: argparse.Namespace) -> None:
                 min_delta=args.min_delta,
                 cost_per_sample=args.cost_per_sample,
                 diversity_weight=args.diversity,
+                report_path=args.report_path,
             )
         except FileExistsError as exc:
             console.print(f"[bold red]Error:[/bold red] {exc}")
@@ -78,6 +79,7 @@ def cmd_init(args: argparse.Namespace) -> None:
         console.print(f"  [bold]Diversity[/bold]      {summary['diversity_weight']} "
                       "(0=uncertainty only, 1=diversity only)")
     console.print(f"  [bold]Database[/bold]       {summary['db_path']}")
+    console.print(f"  [bold]Round report[/bold]   {summary['report_path']}")
     console.print()
     console.print(
         "  Next step: [bold]acquireml session recommend --batch-size 10 "
@@ -191,6 +193,8 @@ def cmd_update(args: argparse.Namespace) -> None:
             f"  [bold]Round cost[/bold]          ${summary['round_cost']:,.2f}  ·  "
             f"[bold]Total spent[/bold] ${summary['cumulative_cost']:,.2f}"
         )
+    if summary.get("report_path"):
+        console.print(f"  [bold]Round report[/bold]        {summary['report_path']}")
     if summary.get("should_stop"):
         console.print(
             f"\n  [bold yellow]⚠ Stopping recommended:[/bold yellow] "
@@ -243,6 +247,8 @@ def cmd_status(args: argparse.Namespace) -> None:
         console.print(
             f"\n  [bold yellow]⚠ Stopping recommended:[/bold yellow] {s['stop_reason']}"
         )
+    if s.get("report_path"):
+        console.print(f"  [bold]Round report[/bold]    {s['report_path']}")
     console.print(f"  [bold]Created[/bold]         {s['created_at']}")
 
 
@@ -336,6 +342,9 @@ def build_session_parser(subparsers) -> None:
     p_init.add_argument("--diversity", type=float, default=0.0, metavar="W",
                          help="Diversity weight for batch selection, 0.0–1.0 "
                               "(0=uncertainty only, 0.5=balanced, 1=diversity only). Default: 0.0")
+    p_init.add_argument("--report-path", type=Path, default=None, metavar="PNG",
+                         help="Where to (re)write the round progress chart after every "
+                              "'session update' (default: <db_stem>_report.png)")
     p_init.set_defaults(func=cmd_init)
 
     # -- recommend
