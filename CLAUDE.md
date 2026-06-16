@@ -55,6 +55,7 @@ acquireml session recommend --batch-size 10 --output recommendations.csv
 acquireml session update results.csv
 acquireml session status
 acquireml session history
+acquireml demo --init    # zero-setup: generates synthetic data + a ready-to-use session
 ```
 
 ## Repository Structure
@@ -71,11 +72,14 @@ acquireml/                  Python package
   explain.py                Feature importance (which DNA fragments predict resistance)
   recommend.py              Phase 3 product: rank NEW unlabeled strains by experimental priority
   validate.py               Rigorous holdout validation on genuinely-unseen strains
-  generic_loader.py         Format-agnostic loader: CSV/TSV/Excel/Rtab, auto-detected by extension
+  generic_loader.py         Format-agnostic loader: CSV/TSV/Excel/Rtab/VCF, auto-detected by extension
   session.py                SQLite-backed prospective active learning session (real-world loop)
   session_cli.py            CLI subcommands for the session workflow
-tests/                      100 tests (test_loader/test_engine/test_recommend/test_validate/
-                              test_generic_loader/test_session)
+  round_report.py           Generates the accuracy/cost progress PNG after each session update
+  demo.py                   Synthetic data generator + `acquireml demo --init` zero-setup session
+tests/                      161 tests (test_loader/test_engine/test_recommend/test_validate/
+                              test_generic_loader/test_session/test_explain/test_round_report/
+                              test_demo)
 docs/                       Charts committed for README display (PNGs)
 data/                       archive.zip + extracted .Rtab + metadata.csv (NOT in git — too big)
 Makefile                   Developer shortcuts
@@ -144,25 +148,32 @@ across many features (matches its multi-gene biology).
 
 - `main` — Phases 1–3 + holdout validation + real-world engine + stopping criteria +
   cost tracking + batch diversity + round report + VCF support + model selection +
-  calibration. 148 tests. Stable. Pushed to GitHub.
-- All eight feature branches (`feature/real-world-engine`, `feature/stopping-criteria`,
+  calibration + demo mode. 161 tests. Stable. Pushed to GitHub.
+- All nine feature branches (`feature/real-world-engine`, `feature/stopping-criteria`,
   `feature/cost-tracking`, `feature/batch-diversity`, `feature/round-report`,
-  `feature/vcf-support`, `feature/model-selection`, `feature/calibration`) are merged
-  into `main`. They still exist as branches but are no longer ahead of main.
+  `feature/vcf-support`, `feature/model-selection`, `feature/calibration`,
+  `feature/demo-mode`) are merged into `main`. They still exist as branches but are
+  no longer ahead of main.
 - Reminder: after merging a feature branch into local main, always `git push origin main`
   right away — local merges are invisible on GitHub until pushed.
 
 ## Session Module Design
 
-**GenericLoader** (`generic_loader.py`): accepts CSV, TSV, Excel, or Rtab. Format detected
-from extension; content-sniffed if ambiguous. Returns `(X, y)` where y is None for unlabeled
-files. Drop-in alongside existing DataLoader — does not replace it.
+**GenericLoader** (`generic_loader.py`): accepts CSV, TSV, Excel, Rtab, or VCF (.vcf/.vcf.gz —
+parsed into the same binary presence/absence matrix as Rtab, GT field decides presence/absence,
+missing genotypes treated as absent). Format detected from extension; content-sniffed if
+ambiguous. Returns `(X, y)` where y is None for unlabeled files (always None for Rtab/VCF).
+Drop-in alongside existing DataLoader — does not replace it.
 
 **Session** (`session.py`): SQLite-backed prospective loop. Three tables: `meta` (config),
 `samples` (id + status: known/pool/pending), `rounds` (accuracy history). Feature data is
 NOT stored in the DB — reloaded from original files on demand. Stopping criteria: configurable
 `patience` (rounds) and `min_delta` (minimum accuracy improvement). Warning fires in
-`update`, `recommend`, and `status` output when plateau detected.
+`update`, `recommend`, and `status` output when plateau detected. Model trained each round is
+selectable via `model` meta (rf/gbm/lr/svm, built by `explain.build_estimator()`), optionally
+wrapped in `CalibratedClassifierCV` when `calibrate=True` (auto-falls-back to uncalibrated if
+the known pool is too small/imbalanced for cross-validation). After every `update`, an
+accuracy/cost progress PNG is regenerated via `round_report.generate_round_report()`.
 
 **Session workflow for a researcher:**
 1. `session init` — provide labeled data + unlabeled pool
@@ -186,14 +197,22 @@ Building one at a time, each on its own branch, merged to main once 100% tested:
 7. ✅ Calibration — `--calibrate`/`--calibration-method sigmoid|isotonic` on `session init`
    wraps the model in CalibratedClassifierCV, with automatic fallback when a round's known
    pool is too small/imbalanced for cross-validation — merged
-8. Demo mode / synthetic data generator — try the tool without real data — **next up**
+8. ✅ Demo mode — `demo.py` generates a synthetic binary feature matrix (small set of causal
+   features + noise, mirroring the real biology) and `acquireml demo --init` spins up a
+   ready-to-use session with zero real data — merged
+
+**All 8 planned features are now built and merged into main.** Next roadmap pass (not yet
+scoped) would need fresh ideas from Gabe — see "Current Status & What's Next" below.
 
 ## Current Status & What's Next
 
-148 tests passing on main. Repo still private. All work pushed to GitHub.
+161 tests passing on main. Repo still private. All work pushed to GitHub.
 
-**Technical:** Feature branch work ongoing (see roadmap above). Next (and last roadmap)
-feature to build: demo mode / synthetic data generator.
+**Technical:** Full feature roadmap complete (stopping criteria → cost tracking →
+batch diversity → round report → VCF support → model selection → calibration →
+demo mode). No specific next feature queued — check with Gabe for what's next
+(candidates: README refresh to showcase the session loop + demo mode, or moving
+into outreach prep now that the engine handles arbitrary real-world data formats).
 
 **Outreach (paused pending repo going public):**
 - Pre-outreach prep: flip repo public (day before first email), write a founder's one-pager.
