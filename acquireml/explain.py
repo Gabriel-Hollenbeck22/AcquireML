@@ -29,10 +29,45 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.base import BaseEstimator
+from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import StratifiedKFold, cross_val_score
+from sklearn.svm import SVC
 
 from acquireml.loader import DataLoader
+
+# Model registry for the `--model` flag. Each must support predict_proba,
+# since QueryStrategy.select_batch relies on it for uncertainty scoring.
+MODEL_CHOICES = ("rf", "gbm", "lr", "svm")
+
+
+def build_estimator(model_name: str = "rf", random_state: int = 42) -> BaseEstimator:
+    """Construct the estimator matching --model rf|gbm|lr|svm."""
+    if model_name == "rf":
+        return RandomForestClassifier(
+            n_estimators=300,
+            class_weight="balanced",
+            random_state=random_state,
+            n_jobs=-1,
+        )
+    if model_name == "gbm":
+        return GradientBoostingClassifier(random_state=random_state)
+    if model_name == "lr":
+        return LogisticRegression(
+            class_weight="balanced",
+            max_iter=1000,
+            random_state=random_state,
+        )
+    if model_name == "svm":
+        return SVC(
+            probability=True,
+            class_weight="balanced",
+            random_state=random_state,
+        )
+    raise ValueError(
+        f"Unknown model {model_name!r}. Choose one of: {', '.join(MODEL_CHOICES)}"
+    )
 
 
 # ── Colours ───────────────────────────────────────────────────────────────────
@@ -52,14 +87,16 @@ def train_full_model(
     X: pd.DataFrame,
     y: pd.Series,
     random_state: int = 42,
-) -> RandomForestClassifier:
-    """Train a Random Forest on the entire labelled dataset."""
-    model = RandomForestClassifier(
-        n_estimators=300,     # more trees = more stable importance estimates
-        class_weight="balanced",
-        random_state=random_state,
-        n_jobs=-1,
-    )
+    model_name: str = "rf",
+) -> BaseEstimator:
+    """Train a classifier on the entire labelled dataset.
+
+    model_name selects the estimator: "rf" (default, Random Forest — also
+    the only one with feature_importances_ used by explain.py), "gbm"
+    (Gradient Boosting), "lr" (Logistic Regression), or "svm" (probability-
+    calibrated SVC).
+    """
+    model = build_estimator(model_name, random_state=random_state)
     model.fit(X.values, y.values)
     return model
 

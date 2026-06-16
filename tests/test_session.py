@@ -512,3 +512,33 @@ def test_report_updates_across_rounds(session, tmp_path):
     mtime_after_round_2 = report_path.stat().st_mtime
     assert mtime_after_round_2 > 0
     session.close()
+
+
+# ── model selection ───────────────────────────────────────────────────────────
+
+def test_model_defaults_to_rf(tmp_path, labeled_csv):
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    summary = sess.init(labeled_csv, label_col="outcome")
+    assert summary["model"] == "rf"
+    s = sess.status()
+    assert s["model"] == "rf"
+    sess.close()
+
+
+@pytest.mark.parametrize("model_name", ["rf", "gbm", "lr", "svm"])
+def test_each_model_choice_completes_a_round(tmp_path, labeled_csv, pool_csv, model_name):
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    sess.init(labeled_csv, label_col="outcome", pool_path=pool_csv, model=model_name)
+    summaries = _run_n_rounds(sess, tmp_path, n=1, batch_size=5)
+    assert 0.0 <= summaries[0]["accuracy"] <= 1.0
+    sess.close()
+
+
+def test_invalid_model_name_raises(tmp_path, labeled_csv):
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    with pytest.raises(ValueError, match="Unknown model"):
+        sess.init(labeled_csv, label_col="outcome", model="xgboost")
+    sess.close()

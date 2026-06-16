@@ -32,7 +32,7 @@ from sklearn.metrics import balanced_accuracy_score
 
 from acquireml.generic_loader import GenericLoader
 from acquireml.strategies import UncertaintySampling, DiverseSampling, _binary_entropy
-from acquireml.explain import train_full_model
+from acquireml.explain import MODEL_CHOICES, train_full_model
 from acquireml.round_report import generate_round_report
 
 DEFAULT_DB_NAME = "acquireml_session.db"
@@ -156,7 +156,8 @@ class Session:
     def _train(self) -> tuple:
         """Return (model, X_known, y_known, accuracy)."""
         X_known, y_known = self._get_known_Xy()
-        model = train_full_model(X_known, y_known)
+        model_name = self._get_meta("model") or "rf"
+        model = train_full_model(X_known, y_known, model_name=model_name)
         acc = float(balanced_accuracy_score(y_known, model.predict(X_known)))
         return model, X_known, y_known, acc
 
@@ -216,6 +217,7 @@ class Session:
         cost_per_sample: Optional[float] = None,
         diversity_weight: float = 0.0,
         report_path: Optional[str | Path] = None,
+        model: str = "rf",
     ) -> dict:
         """Create a new session from labeled data and an optional unlabeled pool.
 
@@ -227,11 +229,17 @@ class Session:
         name      : human-readable session name
         report_path : where to (re)write the round progress PNG after every
             `update`. Defaults to "<db_stem>_report.png" next to the database.
+        model     : which estimator to train each round — one of rf/gbm/lr/svm
+            (see acquireml.explain.MODEL_CHOICES). Default "rf".
 
         Returns
         -------
         summary dict
         """
+        if model not in MODEL_CHOICES:
+            raise ValueError(
+                f"Unknown model {model!r}. Choose one of: {', '.join(MODEL_CHOICES)}"
+            )
         if self.db_path.exists():
             raise FileExistsError(
                 f"Session already exists at {self.db_path}. "
@@ -248,6 +256,7 @@ class Session:
         if cost_per_sample is not None:
             self._set_meta("cost_per_sample", str(cost_per_sample))
         self._set_meta("diversity_weight", str(diversity_weight))
+        self._set_meta("model", model)
         self._set_meta("created_at", datetime.now(timezone.utc).isoformat())
         resolved_report_path = (
             str(Path(report_path).resolve())
@@ -299,6 +308,7 @@ class Session:
             "diversity_weight": diversity_weight,
             "db_path": str(self.db_path),
             "report_path": resolved_report_path,
+            "model": model,
         }
 
     def recommend(
@@ -532,6 +542,7 @@ class Session:
             "cost_per_sample": cost_per_sample,
             "total_cost": total_cost,
             "diversity_weight": float(self._get_meta("diversity_weight") or 0.0),
+            "model": self._get_meta("model") or "rf",
             "should_stop": should_stop,
             "stop_reason": stop_reason,
             "report_path": self._get_meta("report_path"),
