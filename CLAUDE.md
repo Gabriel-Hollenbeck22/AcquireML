@@ -44,9 +44,18 @@ paths (`data/...`) will not resolve.
 - `make explain`   — rank predictive DNA fragments → azm_importance.png
 - `make recommend` — rank new unlabeled strains (edit --input-file first)
 - `make validate`  — holdout test on unseen strains → azm_validation.png
-- `make test`      — run all 38 tests
+- `make test`      — run all tests (100 on main)
 
 CLI entry point: `acquireml --antibiotic azm --iterations 10` (registered via pyproject.toml).
+
+**Session commands** (real-world lab loop — merged to main):
+```
+acquireml session init --data labeled.csv --label-col resistance --pool unlabeled.csv --name proj --patience 3 --min-delta 0.005
+acquireml session recommend --batch-size 10 --output recommendations.csv
+acquireml session update results.csv
+acquireml session status
+acquireml session history
+```
 
 ## Repository Structure
 
@@ -56,17 +65,21 @@ acquireml/                  Python package
   loader.py                 DataLoader — reads .Rtab, transposes, aligns X/y, auto-extracts zip
   strategies.py             QueryStrategy ABC + UncertaintySampling + RandomSampling
   engine.py                 ActiveLearningEngine — the hindsight active-learning simulation loop
-  cli.py                    Rich terminal dashboard (the `acquireml` command)
+  cli.py                    Rich terminal dashboard + session subcommand dispatcher
   compare.py                Learning-curve comparison: active learning vs random sampling
   explore.py                4-panel EDA / dataset overview chart
   explain.py                Feature importance (which DNA fragments predict resistance)
   recommend.py              Phase 3 product: rank NEW unlabeled strains by experimental priority
   validate.py               Rigorous holdout validation on genuinely-unseen strains
-tests/                      38 tests (test_loader/test_engine/test_recommend/test_validate)
+  generic_loader.py         Format-agnostic loader: CSV/TSV/Excel/Rtab, auto-detected by extension
+  session.py                SQLite-backed prospective active learning session (real-world loop)
+  session_cli.py            CLI subcommands for the session workflow
+tests/                      100 tests (test_loader/test_engine/test_recommend/test_validate/
+                              test_generic_loader/test_session)
 docs/                       Charts committed for README display (PNGs)
 data/                       archive.zip + extracted .Rtab + metadata.csv (NOT in git — too big)
 Makefile                   Developer shortcuts
-pyproject.toml             Package config, deps, entry point
+pyproject.toml             Package config, deps, entry point (openpyxl added for Excel support)
 README.md                  Public-facing project narrative + embedded charts
 CONTRIBUTING.md            Collaborator guide
 CLAUDE.md                  This file
@@ -124,19 +137,65 @@ across many features (matches its multi-gene biology).
 - Repo: github.com/Gabriel-Hollenbeck22/AcquireML (currently PRIVATE — see roadmap).
 - Commit when work is complete; commit messages end with a `Co-Authored-By: Claude` trailer.
 - The notebook (.ipynb) and raw data are gitignored; `docs/*.png` are intentionally committed.
+- **Feature branch workflow:** one feature per branch, test until 100% green, demo running,
+  then Gabe approves commit. Never commit mid-build. Never ask permission during a build.
+
+## Branch Map (as of 2026-06-16)
+
+- `main` — Phases 1–3 + holdout validation + real-world engine + stopping criteria +
+  cost tracking + batch diversity. 100 tests. Stable. Pushed to GitHub.
+- All four feature branches (`feature/real-world-engine`, `feature/stopping-criteria`,
+  `feature/cost-tracking`, `feature/batch-diversity`) are merged into `main`. They still
+  exist as branches but are no longer ahead of main.
+- Reminder: after merging a feature branch into local main, always `git push origin main`
+  right away — local merges are invisible on GitHub until pushed.
+
+## Session Module Design
+
+**GenericLoader** (`generic_loader.py`): accepts CSV, TSV, Excel, or Rtab. Format detected
+from extension; content-sniffed if ambiguous. Returns `(X, y)` where y is None for unlabeled
+files. Drop-in alongside existing DataLoader — does not replace it.
+
+**Session** (`session.py`): SQLite-backed prospective loop. Three tables: `meta` (config),
+`samples` (id + status: known/pool/pending), `rounds` (accuracy history). Feature data is
+NOT stored in the DB — reloaded from original files on demand. Stopping criteria: configurable
+`patience` (rounds) and `min_delta` (minimum accuracy improvement). Warning fires in
+`update`, `recommend`, and `status` output when plateau detected.
+
+**Session workflow for a researcher:**
+1. `session init` — provide labeled data + unlabeled pool
+2. `session recommend` — get CSV of top-N most informative samples to test
+3. Fill in the `label` column in the CSV (0/1)
+4. `session update results.csv` — feed results back, model retrains
+5. Repeat until stopping warning fires or pool is exhausted
+
+## Feature Roadmap
+
+Building one at a time, each on its own branch, merged to main once 100% tested:
+1. ✅ Stopping criteria (patience + min_delta) — merged
+2. ✅ Cost tracking — researcher inputs cost-per-experiment; session tracks spend vs accuracy — merged
+3. ✅ Batch diversity — diversity term added to uncertainty sampling via `DiverseSampling` — merged
+4. Round report — auto-generate accuracy curve PNG after each `session update` — **next up**
+5. VCF file support — standard genomics variant format (GATK/bcftools output)
+6. Model selection — `--model rf|gbm|lr|svm` flag
+7. Calibration — wrap model in CalibratedClassifierCV for better uncertainty estimates
+8. Demo mode / synthetic data generator — try the tool without real data
 
 ## Current Status & What's Next
 
-Phases 1–3 + holdout validation complete. 38 tests passing. Repo still private.
+100 tests passing on main. Repo still private. All work pushed to GitHub.
 
-Next up (see Gabe's auto-memory "Outreach Checklist" for detail):
+**Technical:** Feature branch work ongoing (see roadmap above). Next feature to build: round report.
+
+**Outreach (paused pending repo going public):**
 - Pre-outreach prep: flip repo public (day before first email), write a founder's one-pager.
 - Reach out to AMR researchers to LEARN (not pitch): top target Prof. Yonatan Grad (Harvard,
   N. gonorrhoeae genomics leader); also Dr. Nicole Wheeler (Birmingham, ML for AMR).
-- Optional technical work: improve AZM recall; add more query strategies; eventually a web UI.
+- LinkedIn outreach prompt already drafted (ask Claude to surface it from conversation history).
 
 ## Working Style With Gabe
 
 Beginner CS student + founder mindset. Explain plainly, what-before-how, use analogies. He prefers
 polished autonomous design calls over mid-flow clarifying questions. Slow, summer-long pace —
-prioritize understanding over speed.
+prioritize understanding over speed. During implementation: make autonomous calls, no mid-build
+questions, demo it running before reporting done.
