@@ -21,6 +21,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from acquireml import __version__
+from acquireml.explain import MODEL_CHOICES
 from acquireml.session import Session, DEFAULT_DB_NAME
 
 console = Console()
@@ -53,6 +54,7 @@ def cmd_init(args: argparse.Namespace) -> None:
                 cost_per_sample=args.cost_per_sample,
                 diversity_weight=args.diversity,
                 report_path=args.report_path,
+                model=args.model,
             )
         except FileExistsError as exc:
             console.print(f"[bold red]Error:[/bold red] {exc}")
@@ -78,6 +80,7 @@ def cmd_init(args: argparse.Namespace) -> None:
     if summary["diversity_weight"] > 0.0:
         console.print(f"  [bold]Diversity[/bold]      {summary['diversity_weight']} "
                       "(0=uncertainty only, 1=diversity only)")
+    console.print(f"  [bold]Model[/bold]          {summary['model']}")
     console.print(f"  [bold]Database[/bold]       {summary['db_path']}")
     console.print(f"  [bold]Round report[/bold]   {summary['report_path']}")
     console.print()
@@ -243,6 +246,7 @@ def cmd_status(args: argparse.Namespace) -> None:
     dw = s.get("diversity_weight", 0.0)
     console.print(f"  [bold]Diversity[/bold]       {dw} "
                   f"({'diverse+uncertain' if dw > 0 else 'uncertainty only'})")
+    console.print(f"  [bold]Model[/bold]           {s.get('model', 'rf')}")
     if s.get("should_stop"):
         console.print(
             f"\n  [bold yellow]⚠ Stopping recommended:[/bold yellow] {s['stop_reason']}"
@@ -345,6 +349,9 @@ def build_session_parser(subparsers) -> None:
     p_init.add_argument("--report-path", type=Path, default=None, metavar="PNG",
                          help="Where to (re)write the round progress chart after every "
                               "'session update' (default: <db_stem>_report.png)")
+    p_init.add_argument("--model", choices=list(MODEL_CHOICES), default="rf",
+                         help="Estimator trained each round: rf=Random Forest (default), "
+                              "gbm=Gradient Boosting, lr=Logistic Regression, svm=SVC")
     p_init.set_defaults(func=cmd_init)
 
     # -- recommend
