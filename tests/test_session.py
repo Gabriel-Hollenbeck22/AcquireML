@@ -542,3 +542,43 @@ def test_invalid_model_name_raises(tmp_path, labeled_csv):
     with pytest.raises(ValueError, match="Unknown model"):
         sess.init(labeled_csv, label_col="outcome", model="xgboost")
     sess.close()
+
+
+# ── calibration ───────────────────────────────────────────────────────────────
+
+def test_calibrate_defaults_to_false(tmp_path, labeled_csv):
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    summary = sess.init(labeled_csv, label_col="outcome")
+    assert summary["calibrate"] is False
+    s = sess.status()
+    assert s["calibrate"] is False
+    assert s["calibration_method"] == "sigmoid"
+    sess.close()
+
+
+def test_calibrate_true_completes_a_round(tmp_path, labeled_csv, pool_csv):
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    sess.init(labeled_csv, label_col="outcome", pool_path=pool_csv, calibrate=True)
+    summaries = _run_n_rounds(sess, tmp_path, n=1, batch_size=5)
+    assert 0.0 <= summaries[0]["accuracy"] <= 1.0
+    sess.close()
+
+
+def test_calibrate_isotonic_completes_a_round(tmp_path, labeled_csv, pool_csv):
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    sess.init(labeled_csv, label_col="outcome", pool_path=pool_csv,
+              calibrate=True, calibration_method="isotonic")
+    summaries = _run_n_rounds(sess, tmp_path, n=1, batch_size=5)
+    assert 0.0 <= summaries[0]["accuracy"] <= 1.0
+    sess.close()
+
+
+def test_invalid_calibration_method_raises(tmp_path, labeled_csv):
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    with pytest.raises(ValueError, match="Unknown calibration method"):
+        sess.init(labeled_csv, label_col="outcome", calibration_method="platt")
+    sess.close()

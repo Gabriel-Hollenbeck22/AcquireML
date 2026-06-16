@@ -30,6 +30,7 @@ import matplotlib.cm as cm
 import numpy as np
 import pandas as pd
 from sklearn.base import BaseEstimator
+from sklearn.calibration import CalibratedClassifierCV
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import StratifiedKFold, cross_val_score
@@ -40,6 +41,9 @@ from acquireml.loader import DataLoader
 # Model registry for the `--model` flag. Each must support predict_proba,
 # since QueryStrategy.select_batch relies on it for uncertainty scoring.
 MODEL_CHOICES = ("rf", "gbm", "lr", "svm")
+
+# Calibration methods for the `--calibrate` flag (see CalibratedClassifierCV).
+CALIBRATION_METHODS = ("sigmoid", "isotonic")
 
 
 def build_estimator(model_name: str = "rf", random_state: int = 42) -> BaseEstimator:
@@ -88,6 +92,8 @@ def train_full_model(
     y: pd.Series,
     random_state: int = 42,
     model_name: str = "rf",
+    calibrate: bool = False,
+    calibration_method: str = "sigmoid",
 ) -> BaseEstimator:
     """Train a classifier on the entire labelled dataset.
 
@@ -95,10 +101,31 @@ def train_full_model(
     the only one with feature_importances_ used by explain.py), "gbm"
     (Gradient Boosting), "lr" (Logistic Regression), or "svm" (probability-
     calibrated SVC).
+
+    When calibrate=True, the fitted estimator is wrapped in
+    CalibratedClassifierCV so predict_proba reflects true observed
+    frequencies rather than the model's raw (often over/under-confident)
+    scores — this directly improves uncertainty sampling, which relies on
+    predict_proba being meaningfully close to p=0.5 for genuinely uncertain
+    samples. Calibration needs at least 2 samples per class per CV fold; if
+    the known pool is too small or too imbalanced for that, it's skipped
+    and the plain (uncalibrated) model is returned instead.
     """
-    model = build_estimator(model_name, random_state=random_state)
-    model.fit(X.values, y.values)
-    return model
+    base = build_estimator(model_name, random_state=random_state)
+
+    if not calibrate:
+        base.fit(X.values, y.values)
+        return base
+
+    min_class_count = int(pd.Series(y).value_counts().min())
+    cv = min(3, min_class_count)
+    if cv < 2:
+        base.fit(X.values, y.values)
+        return base
+
+    calibrated = CalibratedClassifierCV(base, method=calibration_method, cv=cv)
+    calibrated.fit(X.values, y.values)
+    return calibrated
 
 
 def get_cross_val_score(
