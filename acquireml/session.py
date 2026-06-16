@@ -33,6 +33,7 @@ from sklearn.metrics import balanced_accuracy_score
 from acquireml.generic_loader import GenericLoader
 from acquireml.strategies import UncertaintySampling, DiverseSampling, _binary_entropy
 from acquireml.explain import train_full_model
+from acquireml.round_report import generate_round_report
 
 DEFAULT_DB_NAME = "acquireml_session.db"
 
@@ -214,6 +215,7 @@ class Session:
         min_delta: float = 0.005,
         cost_per_sample: Optional[float] = None,
         diversity_weight: float = 0.0,
+        report_path: Optional[str | Path] = None,
     ) -> dict:
         """Create a new session from labeled data and an optional unlabeled pool.
 
@@ -223,6 +225,8 @@ class Session:
         label_col : column name containing binary labels (0/1)
         pool_path : optional path to unlabeled pool file (no label column)
         name      : human-readable session name
+        report_path : where to (re)write the round progress PNG after every
+            `update`. Defaults to "<db_stem>_report.png" next to the database.
 
         Returns
         -------
@@ -245,6 +249,12 @@ class Session:
             self._set_meta("cost_per_sample", str(cost_per_sample))
         self._set_meta("diversity_weight", str(diversity_weight))
         self._set_meta("created_at", datetime.now(timezone.utc).isoformat())
+        resolved_report_path = (
+            str(Path(report_path).resolve())
+            if report_path
+            else str(self.db_path.with_name(f"{self.db_path.stem}_report.png").resolve())
+        )
+        self._set_meta("report_path", resolved_report_path)
         if pool_path:
             self._set_meta("pool_path", str(Path(pool_path).resolve()))
 
@@ -288,6 +298,7 @@ class Session:
             "cost_per_sample": cost_per_sample,
             "diversity_weight": diversity_weight,
             "db_path": str(self.db_path),
+            "report_path": resolved_report_path,
         }
 
     def recommend(
@@ -467,6 +478,8 @@ class Session:
         ).fetchone()[0]
 
         should_stop, stop_reason = self._check_stopping()
+        report_path = self._generate_report()
+
         return {
             "round": current_round,
             "n_returned": n_updated,
@@ -477,7 +490,18 @@ class Session:
             "cumulative_cost": cumulative_cost,
             "should_stop": should_stop,
             "stop_reason": stop_reason,
+            "report_path": report_path,
         }
+
+    def _generate_report(self) -> str:
+        """Regenerate the round-progress PNG from current history. Returns its path."""
+        report_path = self._get_meta("report_path") or str(
+            self.db_path.with_name(f"{self.db_path.stem}_report.png")
+        )
+        generate_round_report(
+            self.history(), report_path, session_name=self._get_meta("name") or "session"
+        )
+        return report_path
 
     def status(self) -> dict:
         """Return current session state as a dict."""
@@ -510,6 +534,7 @@ class Session:
             "diversity_weight": float(self._get_meta("diversity_weight") or 0.0),
             "should_stop": should_stop,
             "stop_reason": stop_reason,
+            "report_path": self._get_meta("report_path"),
             "created_at": self._get_meta("created_at"),
         }
 
