@@ -32,7 +32,7 @@ from sklearn.metrics import balanced_accuracy_score
 
 from acquireml.generic_loader import GenericLoader
 from acquireml.strategies import UncertaintySampling, DiverseSampling, _binary_entropy
-from acquireml.explain import MODEL_CHOICES, train_full_model
+from acquireml.explain import CALIBRATION_METHODS, MODEL_CHOICES, train_full_model
 from acquireml.round_report import generate_round_report
 
 DEFAULT_DB_NAME = "acquireml_session.db"
@@ -157,7 +157,14 @@ class Session:
         """Return (model, X_known, y_known, accuracy)."""
         X_known, y_known = self._get_known_Xy()
         model_name = self._get_meta("model") or "rf"
-        model = train_full_model(X_known, y_known, model_name=model_name)
+        calibrate = (self._get_meta("calibrate") or "false") == "true"
+        calibration_method = self._get_meta("calibration_method") or "sigmoid"
+        model = train_full_model(
+            X_known, y_known,
+            model_name=model_name,
+            calibrate=calibrate,
+            calibration_method=calibration_method,
+        )
         acc = float(balanced_accuracy_score(y_known, model.predict(X_known)))
         return model, X_known, y_known, acc
 
@@ -218,6 +225,8 @@ class Session:
         diversity_weight: float = 0.0,
         report_path: Optional[str | Path] = None,
         model: str = "rf",
+        calibrate: bool = False,
+        calibration_method: str = "sigmoid",
     ) -> dict:
         """Create a new session from labeled data and an optional unlabeled pool.
 
@@ -231,6 +240,12 @@ class Session:
             `update`. Defaults to "<db_stem>_report.png" next to the database.
         model     : which estimator to train each round — one of rf/gbm/lr/svm
             (see acquireml.explain.MODEL_CHOICES). Default "rf".
+        calibrate : wrap the model in CalibratedClassifierCV each round for
+            more trustworthy uncertainty scores. Skipped automatically (with
+            no error) on rounds where the known pool is too small/imbalanced
+            to support cross-validation.
+        calibration_method : "sigmoid" (default, robust on small data) or
+            "isotonic" (more flexible, needs more data).
 
         Returns
         -------
@@ -239,6 +254,11 @@ class Session:
         if model not in MODEL_CHOICES:
             raise ValueError(
                 f"Unknown model {model!r}. Choose one of: {', '.join(MODEL_CHOICES)}"
+            )
+        if calibration_method not in CALIBRATION_METHODS:
+            raise ValueError(
+                f"Unknown calibration method {calibration_method!r}. "
+                f"Choose one of: {', '.join(CALIBRATION_METHODS)}"
             )
         if self.db_path.exists():
             raise FileExistsError(
@@ -257,6 +277,8 @@ class Session:
             self._set_meta("cost_per_sample", str(cost_per_sample))
         self._set_meta("diversity_weight", str(diversity_weight))
         self._set_meta("model", model)
+        self._set_meta("calibrate", "true" if calibrate else "false")
+        self._set_meta("calibration_method", calibration_method)
         self._set_meta("created_at", datetime.now(timezone.utc).isoformat())
         resolved_report_path = (
             str(Path(report_path).resolve())
@@ -309,6 +331,8 @@ class Session:
             "db_path": str(self.db_path),
             "report_path": resolved_report_path,
             "model": model,
+            "calibrate": calibrate,
+            "calibration_method": calibration_method,
         }
 
     def recommend(
@@ -543,6 +567,8 @@ class Session:
             "total_cost": total_cost,
             "diversity_weight": float(self._get_meta("diversity_weight") or 0.0),
             "model": self._get_meta("model") or "rf",
+            "calibrate": (self._get_meta("calibrate") or "false") == "true",
+            "calibration_method": self._get_meta("calibration_method") or "sigmoid",
             "should_stop": should_stop,
             "stop_reason": stop_reason,
             "report_path": self._get_meta("report_path"),

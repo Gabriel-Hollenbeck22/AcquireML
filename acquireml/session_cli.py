@@ -21,7 +21,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from acquireml import __version__
-from acquireml.explain import MODEL_CHOICES
+from acquireml.explain import CALIBRATION_METHODS, MODEL_CHOICES
 from acquireml.session import Session, DEFAULT_DB_NAME
 
 console = Console()
@@ -55,6 +55,8 @@ def cmd_init(args: argparse.Namespace) -> None:
                 diversity_weight=args.diversity,
                 report_path=args.report_path,
                 model=args.model,
+                calibrate=args.calibrate,
+                calibration_method=args.calibration_method,
             )
         except FileExistsError as exc:
             console.print(f"[bold red]Error:[/bold red] {exc}")
@@ -81,6 +83,8 @@ def cmd_init(args: argparse.Namespace) -> None:
         console.print(f"  [bold]Diversity[/bold]      {summary['diversity_weight']} "
                       "(0=uncertainty only, 1=diversity only)")
     console.print(f"  [bold]Model[/bold]          {summary['model']}")
+    if summary["calibrate"]:
+        console.print(f"  [bold]Calibration[/bold]    {summary['calibration_method']}")
     console.print(f"  [bold]Database[/bold]       {summary['db_path']}")
     console.print(f"  [bold]Round report[/bold]   {summary['report_path']}")
     console.print()
@@ -247,6 +251,8 @@ def cmd_status(args: argparse.Namespace) -> None:
     console.print(f"  [bold]Diversity[/bold]       {dw} "
                   f"({'diverse+uncertain' if dw > 0 else 'uncertainty only'})")
     console.print(f"  [bold]Model[/bold]           {s.get('model', 'rf')}")
+    if s.get("calibrate"):
+        console.print(f"  [bold]Calibration[/bold]     {s.get('calibration_method', 'sigmoid')}")
     if s.get("should_stop"):
         console.print(
             f"\n  [bold yellow]⚠ Stopping recommended:[/bold yellow] {s['stop_reason']}"
@@ -352,6 +358,14 @@ def build_session_parser(subparsers) -> None:
     p_init.add_argument("--model", choices=list(MODEL_CHOICES), default="rf",
                          help="Estimator trained each round: rf=Random Forest (default), "
                               "gbm=Gradient Boosting, lr=Logistic Regression, svm=SVC")
+    p_init.add_argument("--calibrate", action="store_true",
+                         help="Wrap the model in CalibratedClassifierCV each round for "
+                              "more trustworthy uncertainty scores (skipped automatically "
+                              "on rounds too small/imbalanced for cross-validation)")
+    p_init.add_argument("--calibration-method", choices=list(CALIBRATION_METHODS),
+                         default="sigmoid", metavar="METHOD",
+                         help="sigmoid (default, robust on small data) or isotonic "
+                              "(more flexible, needs more data). Only used with --calibrate")
     p_init.set_defaults(func=cmd_init)
 
     # -- recommend
