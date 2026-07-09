@@ -58,6 +58,8 @@ Both charts show our engine (blue) versus random experiment selection (red dashe
 
 The AZM result is striking because resistance is rare (13%) — random sampling often misses resistant strains entirely, while AL actively seeks them out. CIP has more balanced classes (46% resistant) so both strategies converge near-perfectly, but AL consistently reaches that ceiling first.
 
+---
+
 ### What the Model Learns
 
 AcquireML doesn't just produce a number — it explains *which* DNA fragments drive resistance. The chart below ranks all 515 genetic markers by predictive importance for Azithromycin resistance.
@@ -127,6 +129,90 @@ The output ranks every strain from most to least informative to test:
 
 ---
 
+## Real-World Session Loop
+
+The session workflow is the core product. It closes the lab loop: AcquireML tells you what to test, you run the experiments, you feed the results back, the model retrains, and the cycle continues until accuracy plateaus or the pool is exhausted.
+
+### Quick start — zero real data needed
+
+```bash
+acquireml demo --init
+```
+
+This generates synthetic data and spins up a complete, ready-to-use session with one command. No data download required. Use it to explore the interface before connecting real datasets.
+
+### Full workflow with your own data
+
+```bash
+# 1. Create a session from your labeled data and an unlabeled pool
+acquireml session init \
+    --data labeled.csv \
+    --label-col resistance \
+    --pool unlabeled.csv \
+    --name my-project \
+    --patience 3 \
+    --min-delta 0.005
+
+# 2. Get the next batch of experiments to run (ranked by informativeness)
+acquireml session recommend --batch-size 10 --output recommendations.csv
+
+# 3. Fill in the "label" column in recommendations.csv (0=sensitive, 1=resistant)
+#    then feed the results back:
+acquireml session update results.csv
+
+# 4. Check progress
+acquireml session status
+acquireml session history
+
+# 5. Repeat steps 2–3 until the stopping warning fires or the pool is exhausted
+```
+
+### Session management commands
+
+```bash
+# Export the full round history to a CSV for external analysis or sharing
+acquireml session export --output history.csv
+
+# Reset the session back to round 0 (wipes history, preserves config and labels)
+acquireml session reset --yes
+```
+
+### Advanced options
+
+```bash
+# Track lab spend alongside accuracy
+acquireml session init --data labeled.csv --label-col resistance \
+    --pool unlabeled.csv --cost-per-sample 150.00
+
+# Use a gradient boosting model instead of the default random forest
+acquireml session init --data labeled.csv --label-col resistance \
+    --pool unlabeled.csv --model gbm
+
+# Enable probability calibration for more trustworthy uncertainty scores
+acquireml session init --data labeled.csv --label-col resistance \
+    --pool unlabeled.csv --calibrate
+
+# Add diversity to batch selection (avoids recommending redundant experiments)
+acquireml session init --data labeled.csv --label-col resistance \
+    --pool unlabeled.csv --diversity 0.3
+
+# Accepts CSV, TSV, Excel, Rtab, or VCF (.vcf / .vcf.gz) — format is auto-detected
+acquireml session init --data variants.vcf --label-col resistance \
+    --pool new_strains.vcf --name vcf-project
+```
+
+### What the stopping criteria does
+
+AcquireML monitors accuracy after every round. When accuracy stops improving by at least `--min-delta` for `--patience` consecutive rounds, it fires a warning:
+
+```
+⚠ Stopping recommended: accuracy has not improved by ≥0.005 for 3 consecutive rounds
+```
+
+This means the model has learned what the current data can teach it. At that point you can either stop (you've found the optimum), collect a different kind of data, or lower the threshold.
+
+---
+
 ## Dataset
 
 We use a real-world genomic surveillance dataset of **3,786 bacterial samples** collected from patients across the USA, UK, New Zealand, Canada, and 20+ other countries between 1979 and 2017.
@@ -149,7 +235,7 @@ Data source: [Kaggle — Identifying Antibiotic Resistant Bacteria](https://www.
 git clone https://github.com/Gabriel-Hollenbeck22/AcquireML.git
 cd AcquireML
 pip install -e ".[dev]"
-make test   # should show 38 passing tests
+make test   # 171 tests should pass
 ```
 
 ---
@@ -158,6 +244,9 @@ make test   # should show 38 passing tests
 
 ### Quick start
 ```bash
+# Zero-setup demo — generates synthetic data and launches a ready-to-use session
+acquireml demo --init
+
 # Run the active learning engine (Azithromycin, 10 iterations)
 make run
 
@@ -176,7 +265,7 @@ make explore
 # Rank DNA fragments by predictive importance — generates azm_importance.png
 make explain
 
-# Run the full test suite (38 tests)
+# Run the full test suite (171 tests)
 make test
 ```
 
@@ -206,25 +295,26 @@ python -m acquireml.compare --antibiotic azm --runs 10 --iterations 20
 ```
 acquireml/
 ├── acquireml/
-│   ├── __init__.py       Package version
-│   ├── loader.py         DataLoader — reads .Rtab files, aligns features with labels
-│   ├── strategies.py     QueryStrategy ABC · UncertaintySampling · RandomSampling
-│   ├── engine.py         ActiveLearningEngine — the core simulation loop
-│   ├── cli.py            Terminal dashboard (the `acquireml` command)
-│   ├── compare.py        Learning curve comparison: AL vs random sampling
-│   ├── explore.py        Dataset overview visualisation
-│   ├── explain.py        Feature importance analysis
-│   ├── recommend.py      Live recommendations for new, unlabelled strains
-│   └── validate.py       Holdout validation on genuinely unseen strains
-├── tests/
-│   ├── test_loader.py    Data loading and alignment tests
-│   ├── test_engine.py    Engine behaviour and strategy tests
-│   ├── test_recommend.py Recommender alignment, ranking, and output tests
-│   └── test_validate.py  Holdout split and metric tests
-├── docs/                 Charts and figures (committed for README display)
-├── data/                 Place archive.zip here (not included — see above)
-├── Makefile              Developer shortcuts
-└── pyproject.toml        Package config and dependencies
+│   ├── __init__.py         Package version
+│   ├── loader.py           DataLoader — reads .Rtab files, aligns features with labels
+│   ├── generic_loader.py   Format-agnostic loader: CSV/TSV/Excel/Rtab/VCF (auto-detected)
+│   ├── strategies.py       QueryStrategy ABC · UncertaintySampling · DiverseSampling
+│   ├── engine.py           ActiveLearningEngine — the core simulation loop
+│   ├── cli.py              Terminal dashboard (the `acquireml` command)
+│   ├── session.py          SQLite-backed prospective active learning session
+│   ├── session_cli.py      CLI subcommands: init/recommend/update/status/history/reset/export
+│   ├── round_report.py     Auto-generated accuracy + cost chart after each update
+│   ├── compare.py          Learning curve comparison: AL vs random sampling
+│   ├── explore.py          Dataset overview visualisation
+│   ├── explain.py          Feature importance analysis + model builder
+│   ├── recommend.py        Live recommendations for new, unlabelled strains
+│   ├── validate.py         Holdout validation on genuinely unseen strains
+│   └── demo.py             Synthetic data generator + zero-setup session
+├── tests/                  171 tests covering all modules
+├── docs/                   Charts and figures (committed for README display)
+├── data/                   Place archive.zip here (not included — see above)
+├── Makefile                Developer shortcuts
+└── pyproject.toml          Package config and dependencies
 ```
 
 ---
@@ -236,8 +326,12 @@ acquireml/
 | 1 — Simulation Engine | ✅ Complete | Active learning loop on labelled data, proof vs random baseline |
 | 2 — Explainability | ✅ Complete | Feature importance ranking, cross-validated accuracy |
 | 3 — Live Recommendations | ✅ Complete | Recommend experiments for genuinely unlabelled, unseen strains |
-| 4 — Multi-target Optimization | 📋 Planned | Optimize across multiple antibiotics simultaneously |
-| 5 — Lab Interface | 📋 Planned | Web UI for non-programmer lab scientists |
+| 4 — Real-World Session Loop | ✅ Complete | SQLite-backed lab loop with stopping criteria and cost tracking |
+| 5 — Data Format Support | ✅ Complete | CSV, TSV, Excel, Rtab, VCF — auto-detected at load time |
+| 6 — Model Selection & Calibration | ✅ Complete | rf/gbm/lr/svm + CalibratedClassifierCV for trustworthy uncertainty |
+| 7 — Demo Mode | ✅ Complete | Zero-setup synthetic session for instant exploration |
+| 8 — Multi-target Optimization | 📋 Planned | Optimize across multiple antibiotics simultaneously |
+| 9 — Lab Interface | 📋 Planned | Web UI for non-programmer lab scientists |
 
 ---
 
@@ -248,5 +342,3 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for how to report bugs, add new query str
 ---
 
 ## License
-
-MIT
