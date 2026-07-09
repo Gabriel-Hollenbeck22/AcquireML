@@ -582,3 +582,161 @@ def test_invalid_calibration_method_raises(tmp_path, labeled_csv):
     with pytest.raises(ValueError, match="Unknown calibration method"):
         sess.init(labeled_csv, label_col="outcome", calibration_method="platt")
     sess.close()
+
+
+# ── reset ─────────────────────────────────────────────────────────────────────
+
+def test_reset_clears_history(tmp_path, labeled_csv, pool_csv):
+    """After 2 rounds, reset should wipe all round history."""
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    sess.init(labeled_csv, label_col="outcome", pool_path=pool_csv)
+    _run_n_rounds(sess, tmp_path, n=2, batch_size=5)
+    assert len(sess.history()) == 2
+
+    result = sess.reset()
+
+    assert result["rounds_cleared"] == 2
+    assert sess.history() == []
+    sess.close()
+
+
+def test_reset_restores_round_counter(tmp_path, labeled_csv, pool_csv):
+    """current_round should return to 0 after reset."""
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    sess.init(labeled_csv, label_col="outcome", pool_path=pool_csv)
+    _run_n_rounds(sess, tmp_path, n=2, batch_size=5)
+
+    sess.reset()
+
+    assert sess.status()["current_round"] == 0
+    sess.close()
+
+
+def test_reset_moves_pending_back_to_pool(tmp_path, labeled_csv, pool_csv):
+    """Samples marked pending (recommended but not yet returned) go back to pool."""
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    sess.init(labeled_csv, label_col="outcome", pool_path=pool_csv)
+    sess.recommend(batch_size=5)  # marks 5 samples as pending
+
+    before = sess.status()
+    assert before["n_pending"] == 5
+
+    sess.reset()
+
+    after = sess.status()
+    assert after["n_pending"] == 0
+    assert after["n_pool"] == before["n_pool"] + 5
+    sess.close()
+
+
+def test_reset_preserves_known_pool(tmp_path, labeled_csv, pool_csv):
+    """Known (labeled) samples are not affected by reset."""
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    sess.init(labeled_csv, label_col="outcome", pool_path=pool_csv)
+    _run_n_rounds(sess, tmp_path, n=1, batch_size=5)
+    before_known = sess.status()["n_known"]
+
+    sess.reset()
+
+    # known pool still has same samples (we reset history, not labels)
+    assert sess.status()["n_known"] == before_known
+    sess.close()
+
+
+def test_reset_allows_new_round_after(tmp_path, labeled_csv, pool_csv):
+    """After a reset the session should accept a new recommend→update cycle."""
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    sess.init(labeled_csv, label_col="outcome", pool_path=pool_csv)
+    _run_n_rounds(sess, tmp_path, n=2, batch_size=5)
+
+    sess.reset()
+    summaries = _run_n_rounds(sess, tmp_path, n=1, batch_size=5)
+
+    assert summaries[0]["round"] == 1
+    assert len(sess.history()) == 1
+    sess.close()
+
+
+def test_reset_zero_rounds_returns_zero_cleared(tmp_path, labeled_csv, pool_csv):
+    """Resetting a fresh session reports 0 rounds cleared."""
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    sess.init(labeled_csv, label_col="outcome", pool_path=pool_csv)
+
+    result = sess.reset()
+
+    assert result["rounds_cleared"] == 0
+    sess.close()
+
+
+# ── export ────────────────────────────────────────────────────────────────────
+
+def test_export_writes_csv(tmp_path, labeled_csv, pool_csv):
+    """export() should produce a readable CSV with one row per round."""
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    sess.init(labeled_csv, label_col="outcome", pool_path=pool_csv)
+    _run_n_rounds(sess, tmp_path, n=2, batch_size=5)
+
+    out = tmp_path / "history.csv"
+    returned = sess.export(out)
+
+    assert returned == out
+    assert out.exists()
+    df = pd.read_csv(out)
+    assert len(df) == 2
+    sess.close()
+
+
+def test_export_csv_columns(tmp_path, labeled_csv, pool_csv):
+    """Exported CSV must include the core history columns."""
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    sess.init(labeled_csv, label_col="outcome", pool_path=pool_csv)
+    _run_n_rounds(sess, tmp_path, n=1, batch_size=5)
+
+    out = tmp_path / "hist.csv"
+    sess.export(out)
+    df = pd.read_csv(out)
+
+    for col in ("round_number", "n_known", "accuracy", "created_at"):
+        assert col in df.columns
+    sess.close()
+
+
+def test_export_accuracy_values_match_history(tmp_path, labeled_csv, pool_csv):
+    """Accuracy values in the exported CSV must match session.history()."""
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    sess.init(labeled_csv, label_col="outcome", pool_path=pool_csv)
+    _run_n_rounds(sess, tmp_path, n=2, batch_size=5)
+
+    hist = sess.history()
+    out = tmp_path / "h.csv"
+    sess.export(out)
+    df = pd.read_csv(out)
+
+    for i, row in enumerate(hist):
+        assert df.iloc[i]["accuracy"] == pytest.approx(row["accuracy"])
+    sess.close()
+
+
+def test_export_empty_history_writes_header_only_csv(tmp_path, labeled_csv, pool_csv):
+    """export() on a fresh session writes a header-only CSV (no round rows yet)."""
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    sess.init(labeled_csv, label_col="outcome", pool_path=pool_csv)
+
+    out = tmp_path / "empty.csv"
+    sess.export(out)
+    df = pd.read_csv(out)
+
+    assert len(df) == 0
+    assert "round_number" in df.columns
+    assert "accuracy" in df.columns
+    sess.close()

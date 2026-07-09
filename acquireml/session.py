@@ -584,3 +584,57 @@ class Session:
             " FROM rounds ORDER BY round_number"
         ).fetchall()
         return [dict(r) for r in rows]
+
+    def reset(self) -> dict:
+        """Reset the session to its initial state.
+
+        Clears all round history, moves any pending samples back to the
+        unlabeled pool, and resets the current round counter to 0.
+        Session config (model, patience, data paths, etc.) is preserved.
+
+        Returns
+        -------
+        dict with keys: n_known, n_pool, rounds_cleared
+        """
+        con = self._connect()
+        rounds_cleared = con.execute("SELECT COUNT(*) FROM rounds").fetchone()[0]
+        con.execute("DELETE FROM rounds")
+        con.execute("UPDATE samples SET status = 'pool' WHERE status = 'pending'")
+        con.commit()
+        self._set_meta("current_round", "0")
+
+        counts = {
+            s: con.execute(
+                "SELECT COUNT(*) FROM samples WHERE status = ?", (s,)
+            ).fetchone()[0]
+            for s in ("known", "pool")
+        }
+        return {
+            "n_known": counts["known"],
+            "n_pool": counts["pool"],
+            "rounds_cleared": rounds_cleared,
+        }
+
+    def export(self, output_path: str | Path) -> Path:
+        """Export the round history to a CSV file.
+
+        Writes one row per completed round. Always includes the header row
+        even when no rounds have been completed yet.
+
+        Parameters
+        ----------
+        output_path : destination path for the CSV
+
+        Returns
+        -------
+        Path to the written file
+        """
+        _HISTORY_COLS = [
+            "round_number", "n_known", "accuracy",
+            "round_cost", "cumulative_cost", "created_at",
+        ]
+        rows = self.history()
+        out = Path(output_path)
+        df = pd.DataFrame(rows, columns=_HISTORY_COLS) if rows else pd.DataFrame(columns=_HISTORY_COLS)
+        df.to_csv(out, index=False)
+        return out

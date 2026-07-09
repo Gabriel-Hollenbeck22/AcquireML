@@ -262,6 +262,62 @@ def cmd_status(args: argparse.Namespace) -> None:
     console.print(f"  [bold]Created[/bold]         {s['created_at']}")
 
 
+# ── reset ─────────────────────────────────────────────────────────────────────
+
+def cmd_reset(args: argparse.Namespace) -> None:
+    if not args.db.exists():
+        console.print(
+            f"[bold red]Error:[/bold red] No session found at {args.db}."
+        )
+        sys.exit(1)
+    if not args.yes:
+        console.print(
+            f"[bold yellow]Warning:[/bold yellow] This will wipe all round history "
+            f"for the session at [bold]{args.db}[/bold].\n"
+            "Pass [bold]--yes[/bold] to confirm."
+        )
+        sys.exit(1)
+    with Session(args.db) as sess:
+        result = sess.reset()
+    console.print(
+        Panel.fit(
+            f"[bold cyan]AcquireML[/bold cyan] v{__version__}  ·  Session Reset",
+            border_style="cyan",
+        )
+    )
+    console.print(f"  [bold]Rounds cleared[/bold]   {result['rounds_cleared']}")
+    console.print(f"  [bold]Known pool[/bold]       {result['n_known']:,}")
+    console.print(f"  [bold]Unlabeled pool[/bold]   {result['n_pool']:,}")
+    console.print(
+        "\n  Session is back at round 0. "
+        "Run [bold]acquireml session recommend[/bold] to start again."
+    )
+
+
+# ── export ────────────────────────────────────────────────────────────────────
+
+def cmd_export(args: argparse.Namespace) -> None:
+    if not args.db.exists():
+        console.print(
+            f"[bold red]Error:[/bold red] No session found at {args.db}."
+        )
+        sys.exit(1)
+    with Session(args.db) as sess:
+        rows = sess.history()
+        if not rows:
+            console.print("No rounds completed yet — nothing to export.")
+            sys.exit(0)
+        out = sess.export(args.output)
+    console.print(
+        Panel.fit(
+            f"[bold cyan]AcquireML[/bold cyan] v{__version__}  ·  History Exported",
+            border_style="cyan",
+        )
+    )
+    console.print(f"  [bold]Rounds exported[/bold]  {len(rows)}")
+    console.print(f"  [bold]Output[/bold]           {out.resolve()}")
+
+
 # ── history ───────────────────────────────────────────────────────────────────
 
 def cmd_history(args: argparse.Namespace) -> None:
@@ -392,3 +448,25 @@ def build_session_parser(subparsers) -> None:
     p_his = session_sub.add_parser("history", help="Show round-by-round history")
     _add_db_arg(p_his)
     p_his.set_defaults(func=cmd_history)
+
+    # -- reset
+    p_rst = session_sub.add_parser(
+        "reset", help="Wipe round history and return to round 0"
+    )
+    _add_db_arg(p_rst)
+    p_rst.add_argument(
+        "--yes", action="store_true",
+        help="Confirm the reset without an interactive prompt"
+    )
+    p_rst.set_defaults(func=cmd_reset)
+
+    # -- export
+    p_exp = session_sub.add_parser(
+        "export", help="Export round history to CSV"
+    )
+    _add_db_arg(p_exp)
+    p_exp.add_argument(
+        "--output", type=Path, required=True, metavar="CSV",
+        help="Destination CSV file for round history"
+    )
+    p_exp.set_defaults(func=cmd_export)
