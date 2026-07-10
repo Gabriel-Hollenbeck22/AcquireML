@@ -32,7 +32,12 @@ from sklearn.metrics import balanced_accuracy_score
 
 from acquireml.generic_loader import GenericLoader
 from acquireml.strategies import UncertaintySampling, DiverseSampling, _binary_entropy
-from acquireml.explain import CALIBRATION_METHODS, MODEL_CHOICES, train_full_model
+from acquireml.explain import (
+    CALIBRATION_METHODS,
+    MODEL_CHOICES,
+    predict_at_threshold,
+    train_full_model,
+)
 from acquireml.round_report import generate_round_report
 
 DEFAULT_DB_NAME = "acquireml_session.db"
@@ -165,7 +170,7 @@ class Session:
             calibrate=calibrate,
             calibration_method=calibration_method,
         )
-        acc = float(balanced_accuracy_score(y_known, model.predict(X_known)))
+        acc = float(balanced_accuracy_score(y_known, predict_at_threshold(model, X_known)))
         return model, X_known, y_known, acc
 
     # ── Public API ────────────────────────────────────────────────────────────
@@ -384,7 +389,7 @@ class Session:
 
         proba = model.predict_proba(X_pool.values)
         uncertainty = _binary_entropy(proba)
-        predictions = model.predict(X_pool.values)
+        predictions = predict_at_threshold(model, X_pool.values)
 
         order = np.argsort(uncertainty)[::-1][:n_select]
 

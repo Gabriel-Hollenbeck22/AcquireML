@@ -166,9 +166,23 @@ def train_full_model(
     model.predict(X) to make use of it. Falls back to threshold_ = 0.5
     when the known pool is too small/imbalanced for the requested CV,
     same fallback pattern as calibration.
+
+    The search always runs against the uncalibrated base estimator, even
+    when calibrate=True: nesting the threshold search's CV around
+    CalibratedClassifierCV's own internal CV would require far more
+    minority-class samples than a typical known pool has (each outer fold
+    would need enough left over for the inner calibration split too), and
+    fails outright on small pools. Calibration is monotonic per class in
+    practice, so a threshold tuned on raw scores stays a close match.
     """
     base = build_estimator(model_name, random_state=random_state)
     min_class_count = int(pd.Series(y).value_counts().min())
+
+    threshold = 0.5
+    if tune_threshold:
+        cv = min(threshold_cv, min_class_count)
+        if cv >= 2:
+            threshold = find_best_threshold(base, X.values, y.values, cv=cv)
 
     if not calibrate:
         estimator = base
@@ -179,12 +193,6 @@ def train_full_model(
             if cal_cv >= 2
             else base
         )
-
-    threshold = 0.5
-    if tune_threshold:
-        cv = min(threshold_cv, min_class_count)
-        if cv >= 2:
-            threshold = find_best_threshold(estimator, X.values, y.values, cv=cv)
 
     estimator.fit(X.values, y.values)
     estimator.threshold_ = threshold
