@@ -33,7 +33,8 @@ from sklearn.base import BaseEstimator
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import StratifiedKFold, cross_val_score
+from sklearn.metrics import balanced_accuracy_score
+from sklearn.model_selection import StratifiedKFold, cross_val_predict, cross_val_score
 from sklearn.svm import SVC
 
 from acquireml.loader import DataLoader
@@ -74,6 +75,51 @@ def build_estimator(model_name: str = "rf", random_state: int = 42) -> BaseEstim
     )
 
 
+def find_best_threshold(
+    estimator: BaseEstimator,
+    X: np.ndarray,
+    y: np.ndarray,
+    cv: int,
+    metric: str = "balanced_accuracy",
+) -> float:
+    """Cross-validated search for the predict() decision threshold.
+
+    Returns the probability cutoff (0.05-0.95) that maximizes `metric` on
+    out-of-fold predictions, instead of assuming sklearn's default of 0.5.
+    Uses cross_val_predict so the search never scores a fold's predictions
+    against data that fold's fitted model was trained on. Under class
+    imbalance (e.g. AZM's 13% resistant rate), 0.5 is rarely the
+    accuracy-optimal cutoff.
+
+    Caller is responsible for ensuring `cv` does not exceed the minority
+    class count (StratifiedKFold raises otherwise).
+    """
+    if metric != "balanced_accuracy":
+        raise ValueError(f"Unknown threshold metric {metric!r}")
+
+    skf = StratifiedKFold(n_splits=cv, shuffle=True, random_state=42)
+    proba = cross_val_predict(
+        estimator, X, y, cv=skf, method="predict_proba", n_jobs=-1
+    )[:, 1]
+
+    candidates = np.arange(0.05, 0.951, 0.01)
+    scores = [balanced_accuracy_score(y, proba >= t) for t in candidates]
+    return float(candidates[int(np.argmax(scores))])
+
+
+def predict_at_threshold(model: BaseEstimator, X) -> np.ndarray:
+    """Classify using the model's tuned decision threshold.
+
+    Falls back to 0.5 if the model was never routed through
+    train_full_model() (and so never got a threshold_ attribute).
+    predict_proba is never touched here — anything that only needs
+    probabilities (uncertainty sampling) should keep calling it directly.
+    """
+    threshold = getattr(model, "threshold_", 0.5)
+    proba = model.predict_proba(X)[:, 1]
+    return (proba >= threshold).astype(int)
+
+
 # ── Colours ───────────────────────────────────────────────────────────────────
 DRUG_COLOURS = {
     "azm": "#2563EB",   # blue
@@ -94,6 +140,8 @@ def train_full_model(
     model_name: str = "rf",
     calibrate: bool = False,
     calibration_method: str = "sigmoid",
+    tune_threshold: bool = True,
+    threshold_cv: int = 5,
 ) -> BaseEstimator:
     """Train a classifier on the entire labelled dataset.
 
@@ -110,22 +158,37 @@ def train_full_model(
     samples. Calibration needs at least 2 samples per class per CV fold; if
     the known pool is too small or too imbalanced for that, it's skipped
     and the plain (uncalibrated) model is returned instead.
+
+    When tune_threshold=True (default), a cross-validated decision
+    threshold is found via find_best_threshold() and stored as
+    model.threshold_ — callers that classify (rather than just rank by
+    probability) should use predict_at_threshold(model, X) instead of
+    model.predict(X) to make use of it. Falls back to threshold_ = 0.5
+    when the known pool is too small/imbalanced for the requested CV,
+    same fallback pattern as calibration.
     """
     base = build_estimator(model_name, random_state=random_state)
+    min_class_count = int(pd.Series(y).value_counts().min())
 
     if not calibrate:
-        base.fit(X.values, y.values)
-        return base
+        estimator = base
+    else:
+        cal_cv = min(3, min_class_count)
+        estimator = (
+            CalibratedClassifierCV(base, method=calibration_method, cv=cal_cv)
+            if cal_cv >= 2
+            else base
+        )
 
-    min_class_count = int(pd.Series(y).value_counts().min())
-    cv = min(3, min_class_count)
-    if cv < 2:
-        base.fit(X.values, y.values)
-        return base
+    threshold = 0.5
+    if tune_threshold:
+        cv = min(threshold_cv, min_class_count)
+        if cv >= 2:
+            threshold = find_best_threshold(estimator, X.values, y.values, cv=cv)
 
-    calibrated = CalibratedClassifierCV(base, method=calibration_method, cv=cv)
-    calibrated.fit(X.values, y.values)
-    return calibrated
+    estimator.fit(X.values, y.values)
+    estimator.threshold_ = threshold
+    return estimator
 
 
 def get_cross_val_score(
