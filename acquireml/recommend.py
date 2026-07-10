@@ -45,7 +45,7 @@ from rich import box as rich_box
 
 from acquireml import __version__
 from acquireml.loader import DataLoader
-from acquireml.explain import train_full_model
+from acquireml.explain import predict_at_threshold, train_full_model
 from acquireml.strategies import UncertaintySampling, _binary_entropy
 
 console = Console()
@@ -106,7 +106,7 @@ def rank_strains(
     """
     proba = model.predict_proba(X_aligned.values)
     uncertainty = _binary_entropy(proba)
-    predictions = model.predict(X_aligned.values)
+    predictions = predict_at_threshold(model, X_aligned.values)
 
     # Sort all strains from most → least uncertain
     order = np.argsort(uncertainty)[::-1]
