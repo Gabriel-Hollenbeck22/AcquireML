@@ -77,7 +77,7 @@ acquireml/                  Python package
   session_cli.py            CLI subcommands for the session workflow
   round_report.py           Generates the accuracy/cost progress PNG after each session update
   demo.py                   Synthetic data generator + `acquireml demo --init` zero-setup session
-tests/                      161 tests (test_loader/test_engine/test_recommend/test_validate/
+tests/                      179 tests (test_loader/test_engine/test_recommend/test_validate/
                               test_generic_loader/test_session/test_explain/test_round_report/
                               test_demo)
 docs/                       Charts committed for README display (PNGs)
@@ -112,10 +112,13 @@ Format quirks (already handled in loader.py — know them before touching data c
 
 ## Key Results (so far)
 
-Holdout validation (train on 80%, predict on 20% the model never saw):
-- **CIP: 97.6% balanced accuracy** on 618 unseen strains (ROC-AUC 0.996).
-- **AZM: 84.3% balanced accuracy** on 696 unseen strains (ROC-AUC 0.979) — high precision (89.9%),
-  lower recall (69.7%) because resistance is rare. Improving AZM recall is an open task.
+Holdout validation (train on 80%, predict on 20% the model never saw). Every model trained via
+`train_full_model()` now gets a cross-validated decision threshold (`model.threshold_`, tuned to
+maximize balanced accuracy via `explain.find_best_threshold()`) instead of assuming scikit-learn's
+default 0.5 cutoff — this fixed AZM's recall gap:
+- **CIP: 97.7% balanced accuracy** on 618 unseen strains (ROC-AUC 0.996, precision 95.3%, recall 99.7%).
+- **AZM: 93.9% balanced accuracy** on 696 unseen strains (ROC-AUC 0.979, precision 86.0%, recall 89.9%
+  — up from 69.7% recall / 84.3% balanced accuracy before threshold tuning, at the cost of ~4pp precision).
 
 Active learning vs random sampling (same # experiments):
 - AZM: 95.0% vs 83.3% (+11.7 pp). CIP: 99.1% vs 96.9% (+2.2 pp).
@@ -149,6 +152,8 @@ across many features (matches its multi-gene biology).
 - `main` — Phases 1–3 + holdout validation + real-world engine + stopping criteria +
   cost tracking + batch diversity + round report + VCF support + model selection +
   calibration + demo mode. 161 tests. Stable. Pushed to GitHub.
+- `feature/azm-recall-threshold-tuning` — cross-validated decision threshold tuning
+  (fixes AZM's 69.7% holdout recall → 89.9%). 179 tests. Not yet merged.
 - All nine feature branches (`feature/real-world-engine`, `feature/stopping-criteria`,
   `feature/cost-tracking`, `feature/batch-diversity`, `feature/round-report`,
   `feature/vcf-support`, `feature/model-selection`, `feature/calibration`,
