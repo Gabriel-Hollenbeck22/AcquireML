@@ -34,7 +34,6 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 from rich import box as rich_box
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import (
     balanced_accuracy_score,
@@ -47,6 +46,7 @@ from sklearn.metrics import (
 
 from acquireml import __version__
 from acquireml.loader import DataLoader
+from acquireml.explain import predict_at_threshold, train_full_model
 
 console = Console()
 
@@ -67,38 +67,32 @@ def run_validation(
     # The stratify=y argument keeps the same resistant/sensitive ratio in
     # both splits — important because the data is imbalanced.
     X_train, X_holdout, y_train, y_holdout = train_test_split(
-        X.values, y.values,
+        X, y,
         test_size=test_size,
-        stratify=y.values,
+        stratify=y,
         random_state=random_state,
     )
 
-    model = RandomForestClassifier(
-        n_estimators=300,
-        class_weight="balanced",
-        random_state=random_state,
-        n_jobs=-1,
-    )
-    model.fit(X_train, y_train)
+    model = train_full_model(X_train, y_train, random_state=random_state)
 
     # Predict on the holdout — strains the model has never seen
-    y_pred = model.predict(X_holdout)
-    y_proba = model.predict_proba(X_holdout)[:, 1]
+    y_pred = predict_at_threshold(model, X_holdout.values)
+    y_proba = model.predict_proba(X_holdout.values)[:, 1]
 
-    cm = confusion_matrix(y_holdout, y_pred)
+    cm = confusion_matrix(y_holdout.values, y_pred)
     # cm layout: [[TN, FP], [FN, TP]]
     tn, fp, fn, tp = cm.ravel()
 
     return {
         "n_train": len(y_train),
         "n_holdout": len(y_holdout),
-        "n_holdout_resistant": int(y_holdout.sum()),
-        "n_holdout_sensitive": int((y_holdout == 0).sum()),
-        "balanced_accuracy": balanced_accuracy_score(y_holdout, y_pred),
-        "precision": precision_score(y_holdout, y_pred, zero_division=0),
-        "recall": recall_score(y_holdout, y_pred, zero_division=0),
-        "f1": f1_score(y_holdout, y_pred, zero_division=0),
-        "roc_auc": roc_auc_score(y_holdout, y_proba) if len(np.unique(y_holdout)) > 1 else float("nan"),
+        "n_holdout_resistant": int(y_holdout.values.sum()),
+        "n_holdout_sensitive": int((y_holdout.values == 0).sum()),
+        "balanced_accuracy": balanced_accuracy_score(y_holdout.values, y_pred),
+        "precision": precision_score(y_holdout.values, y_pred, zero_division=0),
+        "recall": recall_score(y_holdout.values, y_pred, zero_division=0),
+        "f1": f1_score(y_holdout.values, y_pred, zero_division=0),
+        "roc_auc": roc_auc_score(y_holdout.values, y_proba) if len(np.unique(y_holdout.values)) > 1 else float("nan"),
         "confusion_matrix": cm,
         "tn": int(tn), "fp": int(fp), "fn": int(fn), "tp": int(tp),
     }
