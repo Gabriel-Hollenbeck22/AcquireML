@@ -82,20 +82,20 @@ Results trained on full datasets, evaluated with 5-fold stratified cross-validat
 
 The strongest evidence: we lock away 20% of the data, train only on the other 80%, then predict resistance for the held-out strains the model has **never seen**. This is the honest test of whether AcquireML generalises to genuinely new data.
 
-**Ciprofloxacin** — 618 unseen strains, 97.6% balanced accuracy:
+**Ciprofloxacin** — 618 unseen strains, 97.7% balanced accuracy:
 
 ![CIP Holdout Validation](docs/cip_validation.png)
 
-**Azithromycin** — 696 unseen strains, 84.3% balanced accuracy:
+**Azithromycin** — 696 unseen strains, 93.9% balanced accuracy:
 
 ![AZM Holdout Validation](docs/azm_validation.png)
 
 | Antibiotic | Unseen Strains | Balanced Accuracy | Precision | Recall | ROC-AUC |
 |---|---|---|---|---|---|
-| Ciprofloxacin (CIP) | 618 | **97.6%** | 96.9% | 97.9% | 0.996 |
-| Azithromycin (AZM) | 696 | **84.3%** | 89.9% | 69.7% | 0.979 |
+| Ciprofloxacin (CIP) | 618 | **97.7%** | 95.3% | 99.7% | 0.996 |
+| Azithromycin (AZM) | 696 | **93.9%** | 86.0% | 89.9% | 0.979 |
 
-The CIP model is near-clinical-grade on unseen data. The AZM model has high precision (when it flags a strain as resistant, it's right 90% of the time) but lower recall — it misses some resistant strains because they're rare (only 13% of samples). Improving AZM recall is an active area of work.
+The CIP model is near-clinical-grade on unseen data. The AZM model catches 90% of truly resistant strains — every model in this project is trained with a cross-validated decision threshold instead of assuming the naive 50% cutoff, which matters because resistance is rare (only 13% of AZM samples): the default cutoff was quietly under-calling the rare class.
 
 Run it yourself: `make validate` or `python -m acquireml.validate --antibiotic cip`
 
@@ -235,7 +235,7 @@ Data source: [Kaggle — Identifying Antibiotic Resistant Bacteria](https://www.
 git clone https://github.com/Gabriel-Hollenbeck22/AcquireML.git
 cd AcquireML
 pip install -e ".[dev]"
-make test   # 171 tests should pass
+make test   # 179 tests should pass
 ```
 
 ---
@@ -265,7 +265,7 @@ make explore
 # Rank DNA fragments by predictive importance — generates azm_importance.png
 make explain
 
-# Run the full test suite (171 tests)
+# Run the full test suite (179 tests)
 make test
 ```
 
@@ -310,7 +310,7 @@ acquireml/
 │   ├── recommend.py        Live recommendations for new, unlabelled strains
 │   ├── validate.py         Holdout validation on genuinely unseen strains
 │   └── demo.py             Synthetic data generator + zero-setup session
-├── tests/                  171 tests covering all modules
+├── tests/                  179 tests covering all modules
 ├── docs/                   Charts and figures (committed for README display)
 ├── data/                   Place archive.zip here (not included — see above)
 ├── Makefile                Developer shortcuts
@@ -342,3 +342,5 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for how to report bugs, add new query str
 ---
 
 ## License
+
+Apache License 2.0 — see [LICENSE](LICENSE).
