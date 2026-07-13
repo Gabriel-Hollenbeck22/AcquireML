@@ -75,6 +75,18 @@
     font-size: 17px;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
+    position: relative;
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 56px 56px;
+    opacity: 0.35;
   }
 
   a { color: var(--accent); }
@@ -364,8 +376,17 @@
     margin-top: 2.2rem;
     display: flex;
     flex-wrap: wrap;
+    align-items: center;
     gap: 1rem;
   }
+  .copy-feedback {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--accent-bright);
+    opacity: 0;
+    transition: opacity 0.25s ease;
+  }
+  .copy-feedback.show { opacity: 1; }
 
   footer {
     padding: 3rem 2rem 4rem 2.6rem;
@@ -394,12 +415,6 @@
 <div class="shell">
   <section class="hero">
     <svg class="hero-grid" width="100%" height="420" preserveAspectRatio="none" aria-hidden="true">
-      <defs>
-        <pattern id="chartgrid" width="56" height="56" patternUnits="userSpaceOnUse">
-          <path d="M 56 0 L 0 0 0 56" fill="none" stroke="var(--line)" stroke-width="1"/>
-        </pattern>
-      </defs>
-      <rect width="100%" height="100%" fill="url(#chartgrid)" />
       <path id="route-path" d="M -20,340 C 180,300 260,150 480,120 S 760,180 1040,40" fill="none" stroke="var(--brass)" stroke-width="1.5" stroke-dasharray="4 6" opacity="0.6" />
     </svg>
     <div class="hero-inner">
@@ -549,8 +564,9 @@
       <p>I'm building this to learn — from the science and from anyone closer to the lab bench than I am. If you work in AMR genomics, I'd like to hear what's actually broken about this approach.</p>
       <div class="contact-links">
         <a class="btn btn-primary" href="https://github.com/Gabriel-Hollenbeck22/AcquireML">GitHub repository →</a>
-        <a class="btn btn-ghost" href="mailto:gabriel.hollenbeck22@gmail.com">Email me</a>
+        <a class="btn btn-ghost" href="mailto:gabriel.hollenbeck22@gmail.com" id="email-link">gabriel.hollenbeck22@gmail.com</a>
         <a class="btn btn-ghost" href="https://www.linkedin.com/in/gabriel-hollenbeck22/">LinkedIn</a>
+        <span class="copy-feedback" id="copy-feedback" aria-live="polite"></span>
       </div>
     </div>
   </section>
@@ -587,6 +603,18 @@
         }
       });
     });
+
+    var emailLink = document.getElementById('email-link');
+    var copyFeedback = document.getElementById('copy-feedback');
+    if (emailLink && copyFeedback && navigator.clipboard) {
+      emailLink.addEventListener('click', function () {
+        navigator.clipboard.writeText(emailLink.textContent.trim()).then(function () {
+          copyFeedback.textContent = 'Copied to clipboard';
+          copyFeedback.classList.add('show');
+          setTimeout(function () { copyFeedback.classList.remove('show'); }, 2200);
+        }).catch(function () {});
+      });
+    }
   })();
 </script>
 </body>
