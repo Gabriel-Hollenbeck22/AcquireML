@@ -75,3 +75,69 @@ def test_get_status_full_fields(client, tmp_path, labeled_csv, monkeypatch):
     assert body["min_delta"] == 0.005
     assert body["should_stop"] is False
     assert body["created_at"] is not None
+
+
+def test_create_session_success(client, labeled_csv):
+    with open(labeled_csv, "rb") as f:
+        resp = client.post(
+            "/sessions",
+            data={"name": "azm-project", "label_col": "outcome"},
+            files={"labeled_file": ("labeled.csv", f, "text/csv")},
+        )
+    assert resp.status_code == 201
+    body = resp.json()
+    assert body["name"] == "azm-project"
+    assert body["n_known"] == 20
+    assert body["n_pool"] == 0
+    assert body["model"] == "rf"
+
+
+def test_create_session_with_pool_file(client, labeled_csv, tmp_path):
+    import numpy as np
+    import pandas as pd
+    rng = np.random.default_rng(7)
+    pool_df = pd.DataFrame(
+        rng.integers(0, 2, size=(30, 10)).astype(int),
+        index=[f"pool_{i}" for i in range(30)],
+        columns=[f"f{j}" for j in range(10)],
+    )
+    pool_csv = tmp_path / "pool.csv"
+    pool_df.to_csv(pool_csv)
+
+    with open(labeled_csv, "rb") as lf, open(pool_csv, "rb") as pf:
+        resp = client.post(
+            "/sessions",
+            data={"name": "azm-project", "label_col": "outcome"},
+            files={
+                "labeled_file": ("labeled.csv", lf, "text/csv"),
+                "pool_file": ("pool.csv", pf, "text/csv"),
+            },
+        )
+    assert resp.status_code == 201
+    assert resp.json()["n_pool"] == 30
+
+
+def test_create_session_duplicate_name_409s(client, labeled_csv):
+    with open(labeled_csv, "rb") as f:
+        client.post(
+            "/sessions",
+            data={"name": "azm-project", "label_col": "outcome"},
+            files={"labeled_file": ("labeled.csv", f, "text/csv")},
+        )
+    with open(labeled_csv, "rb") as f:
+        resp = client.post(
+            "/sessions",
+            data={"name": "azm-project", "label_col": "outcome"},
+            files={"labeled_file": ("labeled.csv", f, "text/csv")},
+        )
+    assert resp.status_code == 409
+
+
+def test_create_session_invalid_model_400s(client, labeled_csv):
+    with open(labeled_csv, "rb") as f:
+        resp = client.post(
+            "/sessions",
+            data={"name": "azm-project", "label_col": "outcome", "model": "not-a-model"},
+            files={"labeled_file": ("labeled.csv", f, "text/csv")},
+        )
+    assert resp.status_code == 400
