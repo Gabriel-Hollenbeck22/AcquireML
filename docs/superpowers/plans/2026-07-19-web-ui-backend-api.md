@@ -462,7 +462,7 @@ git commit -m "Add Pydantic schemas for the web UI API"
 
 ---
 
-### Task 3: FastAPI app skeleton, error mapping, GET /sessions
+### Task 3: FastAPI app skeleton, error mapping, GET /sessions, GET /sessions/{name}/status
 
 **Files:**
 - Create: `acquireml/api/app.py`
@@ -471,13 +471,17 @@ git commit -m "Add Pydantic schemas for the web UI API"
 **Interfaces:**
 - Consumes: `store.list_session_names`, `store.session_path`,
   `store.session_exists`, `store.SESSIONS_DIR` (Task 1);
-  `schemas.SessionSummary` (Task 2); `acquireml.session.Session`.
+  `schemas.SessionSummary`, `schemas.StatusResponse` (Task 2);
+  `acquireml.session.Session`.
 - Produces: `app: FastAPI` (importable as `acquireml.api.app:app`, the
   target uvicorn will run). A `get_session(name: str) -> Session`
   dependency that later tasks reuse via `Depends(get_session)` — it
   404s if the session doesn't exist, otherwise returns an open `Session`
   pointed at that name's `.db` file. Global exception handlers for
   `FileExistsError` (409), `RuntimeError` (409), `ValueError` (400).
+  `GET /sessions/{name}/status` returns the full `StatusResponse` here,
+  not a placeholder — there's no reason to build a partial version first
+  and replace it two tasks later.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -545,7 +549,28 @@ def test_list_sessions_returns_summary(client, tmp_path, labeled_csv, monkeypatc
 def test_get_unknown_session_status_404s(client):
     resp = client.get("/sessions/nope/status")
     assert resp.status_code == 404
+
+
+def test_get_status_full_fields(client, tmp_path, labeled_csv, monkeypatch):
+    sessions_dir = tmp_path / "sessions"
+    sessions_dir.mkdir(parents=True, exist_ok=True)
+    Session(sessions_dir / "azm-project.db").init(
+        labeled_csv, label_col="outcome", name="azm-project",
+    )
+    resp = client.get("/sessions/azm-project/status")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["name"] == "azm-project"
+    assert body["patience"] == 3
+    assert body["min_delta"] == 0.005
+    assert body["should_stop"] is False
+    assert body["created_at"] is not None
 ```
+
+This creates the session directly through `Session.init()` (same pattern
+`test_list_sessions_returns_summary` above already uses), not through
+`POST /sessions` — that endpoint doesn't exist until Task 4, and this
+test must be able to pass by the end of Task 3, not two tasks later.
 
 - [ ] **Step 2: Run tests to verify they fail**
 
@@ -569,7 +594,7 @@ from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from acquireml.api import store
-from acquireml.api.schemas import SessionSummary
+from acquireml.api.schemas import SessionSummary, StatusResponse
 from acquireml.session import Session
 
 app = FastAPI(title="AcquireML Web UI API")
@@ -629,30 +654,35 @@ def list_sessions() -> list[SessionSummary]:
     return summaries
 
 
-@app.get("/sessions/{name}/status", response_model=SessionSummary)
-def get_status(sess: Session = Depends(get_session)) -> SessionSummary:
+@app.get("/sessions/{name}/status", response_model=StatusResponse)
+def get_status(sess: Session = Depends(get_session)) -> StatusResponse:
     with sess:
         s = sess.status()
-        return SessionSummary(
-            name=s["name"] or "",
+        return StatusResponse(
+            name=s["name"],
             current_round=s["current_round"],
             n_known=s["n_known"],
             n_pool=s["n_pool"],
             n_pending=s["n_pending"],
             latest_accuracy=s["latest_accuracy"],
+            patience=s["patience"],
+            min_delta=s["min_delta"],
+            cost_per_sample=s["cost_per_sample"],
+            total_cost=s["total_cost"],
+            diversity_weight=s["diversity_weight"],
+            model=s["model"],
+            calibrate=s["calibrate"],
+            calibration_method=s["calibration_method"],
+            should_stop=s["should_stop"],
+            stop_reason=s["stop_reason"],
+            created_at=s["created_at"],
         )
 ```
-
-Note: `get_status` above returns `SessionSummary` (not the full
-`StatusResponse`) only as a placeholder to make Task 3's own test pass —
-Task 5 replaces this with the real `StatusResponse` version. This keeps
-Task 3 focused on app wiring + `GET /sessions` + the 404 dependency, which
-is exactly what its tests check.
 
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `/Library/Frameworks/Python.framework/Versions/3.13/bin/python3 -m pytest tests/test_api_app.py -v`
-Expected: 3 passed
+Expected: 4 passed
 
 - [ ] **Step 5: Commit**
 
@@ -832,7 +862,7 @@ def create_session(
 Add `SessionCreateResponse` to the existing schemas import line:
 
 ```python
-from acquireml.api.schemas import SessionCreateResponse, SessionSummary
+from acquireml.api.schemas import SessionCreateResponse, SessionSummary, StatusResponse
 ```
 
 Note: `Session.init` reads `data_path`/`pool_path` from disk immediately
@@ -843,7 +873,7 @@ so the temp files are guaranteed to still exist when they're needed —
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `/Library/Frameworks/Python.framework/Versions/3.13/bin/python3 -m pytest tests/test_api_app.py -v`
-Expected: 7 passed
+Expected: 8 passed
 
 - [ ] **Step 5: Commit**
 
@@ -854,18 +884,16 @@ git commit -m "Add POST /sessions (create session from uploaded files)"
 
 ---
 
-### Task 5: GET /sessions/{name}/status (full) and /history
+### Task 5: GET /sessions/{name}/history
 
 **Files:**
 - Modify: `acquireml/api/app.py`
 - Test: `tests/test_api_app.py`
 
 **Interfaces:**
-- Consumes: `schemas.StatusResponse`, `schemas.HistoryRow` (Task 2),
-  `get_session` dependency (Task 3).
-- Produces: `GET /sessions/{name}/status` returning the full
-  `StatusResponse` (replacing Task 3's placeholder), and
-  `GET /sessions/{name}/history` returning `list[HistoryRow]`.
+- Consumes: `schemas.HistoryRow` (Task 2), `get_session` dependency
+  (Task 3).
+- Produces: `GET /sessions/{name}/history` returning `list[HistoryRow]`.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -879,18 +907,6 @@ def _create_session(client, labeled_csv, name="azm-project"):
             data={"name": name, "label_col": "outcome"},
             files={"labeled_file": ("labeled.csv", f, "text/csv")},
         )
-
-
-def test_get_status_full_fields(client, labeled_csv):
-    _create_session(client, labeled_csv)
-    resp = client.get("/sessions/azm-project/status")
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["name"] == "azm-project"
-    assert body["patience"] == 3
-    assert body["min_delta"] == 0.005
-    assert body["should_stop"] is False
-    assert body["created_at"] is not None
 
 
 def test_get_history_empty_for_new_session(client, labeled_csv):
@@ -907,12 +923,10 @@ def test_get_history_404s_for_unknown_session(client):
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `/Library/Frameworks/Python.framework/Versions/3.13/bin/python3 -m pytest tests/test_api_app.py -k "status_full or history" -v`
-Expected: `test_get_status_full_fields` FAILs (missing fields like `patience`
-on the placeholder `SessionSummary` response), `test_get_history*` FAIL
-with 404 route-not-found.
+Run: `/Library/Frameworks/Python.framework/Versions/3.13/bin/python3 -m pytest tests/test_api_app.py -k history -v`
+Expected: FAIL with 404 (no such route yet)
 
-- [ ] **Step 3: Replace the placeholder status endpoint and add history**
+- [ ] **Step 3: Add the history endpoint**
 
 In `acquireml/api/app.py`, update the schemas import:
 
@@ -925,34 +939,9 @@ from acquireml.api.schemas import (
 )
 ```
 
-Replace the existing `get_status` function entirely with:
+Add:
 
 ```python
-@app.get("/sessions/{name}/status", response_model=StatusResponse)
-def get_status(sess: Session = Depends(get_session)) -> StatusResponse:
-    with sess:
-        s = sess.status()
-        return StatusResponse(
-            name=s["name"],
-            current_round=s["current_round"],
-            n_known=s["n_known"],
-            n_pool=s["n_pool"],
-            n_pending=s["n_pending"],
-            latest_accuracy=s["latest_accuracy"],
-            patience=s["patience"],
-            min_delta=s["min_delta"],
-            cost_per_sample=s["cost_per_sample"],
-            total_cost=s["total_cost"],
-            diversity_weight=s["diversity_weight"],
-            model=s["model"],
-            calibrate=s["calibrate"],
-            calibration_method=s["calibration_method"],
-            should_stop=s["should_stop"],
-            stop_reason=s["stop_reason"],
-            created_at=s["created_at"],
-        )
-
-
 @app.get("/sessions/{name}/history", response_model=list[HistoryRow])
 def get_history(sess: Session = Depends(get_session)) -> list[HistoryRow]:
     with sess:
@@ -963,10 +952,6 @@ def get_history(sess: Session = Depends(get_session)) -> list[HistoryRow]:
 `Session.history()`'s dict keys are already an exact 1:1 match with
 `HistoryRow`'s fields — there's no extra key like `update()`'s
 `report_path` to worry about.
-
-Also update `list_sessions` to use the now-real status fields the same
-way it already did (no change needed there — it already only reads the
-fields `SessionSummary` needs).
 
 - [ ] **Step 4: Run tests to verify they pass**
 
