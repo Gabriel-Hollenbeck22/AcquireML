@@ -55,3 +55,35 @@ def test_list_session_names_returns_stems_sorted(tmp_path):
     (base / "cip-project.db").touch()
     (base / "azm-project.db").touch()
     assert list_session_names(base_dir=base) == ["azm-project", "cip-project"]
+
+
+def test_session_path_rejects_path_traversal(tmp_path):
+    base = tmp_path / "sessions"
+    try:
+        session_path("../../etc/passwd", base_dir=base)
+        assert False, "expected ValueError"
+    except ValueError:
+        pass
+
+
+def test_session_path_rejects_absolute_path(tmp_path):
+    base = tmp_path / "sessions"
+    try:
+        session_path("/etc/passwd", base_dir=base)
+        assert False, "expected ValueError"
+    except ValueError:
+        pass
+
+
+def test_session_path_accepts_normal_name(tmp_path):
+    base = tmp_path / "sessions"
+    assert session_path("azm-project", base_dir=base) == base / "azm-project.db"
+
+
+def test_session_exists_rejects_path_traversal(tmp_path):
+    base = tmp_path / "sessions"
+    try:
+        session_exists("../../etc/passwd", base_dir=base)
+        assert False, "expected ValueError"
+    except ValueError:
+        pass

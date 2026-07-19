@@ -19,7 +19,17 @@ def ensure_sessions_dir(base_dir: Path = SESSIONS_DIR) -> Path:
 
 
 def session_path(name: str, base_dir: Path = SESSIONS_DIR) -> Path:
-    """Return the .db path for a session name (does not check existence)."""
+    """Return the .db path for a session name (does not check existence).
+
+    ``name`` is the trust boundary between client input and the filesystem
+    (the FastAPI layer wires a client-supplied URL path parameter straight
+    into this function), so it must be a safe bare identifier — no path
+    separators, no absolute paths, no ``..`` traversal. ``Path(name).name``
+    strips any directory components and normalizes traversal segments, so
+    comparing it back against ``name`` catches both cases.
+    """
+    if Path(name).name != name:
+        raise ValueError(f"invalid session name: {name!r}")
     return base_dir / f"{name}.db"
 
 
