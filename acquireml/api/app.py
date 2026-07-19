@@ -14,7 +14,12 @@ from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
 from acquireml.api import store
-from acquireml.api.schemas import SessionCreateResponse, SessionSummary, StatusResponse
+from acquireml.api.schemas import (
+    HistoryRow,
+    SessionCreateResponse,
+    SessionSummary,
+    StatusResponse,
+)
 from acquireml.session import Session
 
 app = FastAPI(title="AcquireML Web UI API")
@@ -156,3 +161,9 @@ def get_status(sess: Session = Depends(get_session)) -> StatusResponse:
             stop_reason=s["stop_reason"],
             created_at=s["created_at"],
         )
+
+
+@app.get("/sessions/{name}/history", response_model=list[HistoryRow])
+def get_history(sess: Session = Depends(get_session)) -> list[HistoryRow]:
+    with sess:
+        return [HistoryRow(**row) for row in sess.history()]

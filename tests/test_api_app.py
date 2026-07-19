@@ -141,3 +141,24 @@ def test_create_session_invalid_model_400s(client, labeled_csv):
             files={"labeled_file": ("labeled.csv", f, "text/csv")},
         )
     assert resp.status_code == 400
+
+
+def _create_session(client, labeled_csv, name="azm-project"):
+    with open(labeled_csv, "rb") as f:
+        client.post(
+            "/sessions",
+            data={"name": name, "label_col": "outcome"},
+            files={"labeled_file": ("labeled.csv", f, "text/csv")},
+        )
+
+
+def test_get_history_empty_for_new_session(client, labeled_csv):
+    _create_session(client, labeled_csv)
+    resp = client.get("/sessions/azm-project/history")
+    assert resp.status_code == 200
+    assert resp.json() == []
+
+
+def test_get_history_404s_for_unknown_session(client):
+    resp = client.get("/sessions/nope/history")
+    assert resp.status_code == 404
