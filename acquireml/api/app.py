@@ -11,7 +11,7 @@ import uuid
 from pathlib import Path
 
 import pandas as pd
-from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
 from acquireml.api import store
@@ -19,6 +19,7 @@ from acquireml.api.schemas import (
     HistoryRow,
     RecommendResponse,
     RecommendRow,
+    ResetResponse,
     SessionCreateResponse,
     SessionSummary,
     StatusResponse,
@@ -242,3 +243,43 @@ def update(body: UpdateRequest, sess: Session = Depends(get_session)) -> UpdateR
             should_stop=result["should_stop"],
             stop_reason=result["stop_reason"],
         )
+
+
+@app.post("/sessions/{name}/reset", response_model=ResetResponse)
+def reset(sess: Session = Depends(get_session)) -> ResetResponse:
+    with sess:
+        result = sess.reset()
+        return ResetResponse(
+            n_known=result["n_known"],
+            n_pool=result["n_pool"],
+            rounds_cleared=result["rounds_cleared"],
+        )
+
+
+@app.get("/sessions/{name}/export")
+def export(name: str, sess: Session = Depends(get_session)) -> Response:
+    # Read the CSV into memory rather than streaming it from disk with
+    # FileResponse: FileResponse reads lazily as it streams, but the
+    # TemporaryDirectory below deletes its contents as soon as the `with`
+    # block exits, which happens before streaming would finish. Reading
+    # the bytes up front avoids that race entirely.
+    with sess:
+        with tempfile.TemporaryDirectory() as tmp:
+            out_path = Path(tmp) / f"{name}_history.csv"
+            sess.export(out_path)
+            csv_bytes = out_path.read_bytes()
+    return Response(
+        content=csv_bytes,
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{name}_history.csv"'},
+    )
+
+
+@app.delete("/sessions/{name}", status_code=204)
+def delete_session(name: str, sess: Session = Depends(get_session)) -> Response:
+    sess.close()
+    db_path = store.session_path(name, base_dir=store.SESSIONS_DIR)
+    db_path.unlink(missing_ok=True)
+    report_path = db_path.with_name(f"{db_path.stem}_report.png")
+    report_path.unlink(missing_ok=True)
+    return Response(status_code=204)

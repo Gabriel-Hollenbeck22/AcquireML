@@ -271,3 +271,40 @@ def test_update_no_matching_results_400s(client, labeled_csv, tmp_path):
         json={"results": [{"sample_id": "not_a_real_id", "label": 1}]},
     )
     assert resp.status_code == 400
+
+
+def test_reset_clears_rounds(client, labeled_csv, tmp_path):
+    _create_session_with_pool(client, labeled_csv, tmp_path)
+    rec = client.get("/sessions/azm-project/recommend?batch_size=5").json()
+    results = [{"sample_id": r["sample_id"], "label": 0} for r in rec["rows"]]
+    client.post("/sessions/azm-project/update", json={"results": results})
+
+    resp = client.post("/sessions/azm-project/reset")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["rounds_cleared"] == 1
+
+    status = client.get("/sessions/azm-project/status").json()
+    assert status["current_round"] == 0
+
+
+def test_export_returns_csv(client, labeled_csv):
+    _create_session(client, labeled_csv)
+    resp = client.get("/sessions/azm-project/export")
+    assert resp.status_code == 200
+    assert "text/csv" in resp.headers["content-type"]
+    assert "round_number" in resp.text
+
+
+def test_delete_removes_session(client, labeled_csv):
+    _create_session(client, labeled_csv)
+    resp = client.delete("/sessions/azm-project")
+    assert resp.status_code == 204
+
+    resp = client.get("/sessions/azm-project/status")
+    assert resp.status_code == 404
+
+
+def test_delete_unknown_session_404s(client):
+    resp = client.delete("/sessions/nope")
+    assert resp.status_code == 404
