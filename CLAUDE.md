@@ -187,6 +187,14 @@ accuracy/cost progress PNG is regenerated via `round_report.generate_round_repor
 4. `session update results.csv` — feed results back, model retrains
 5. Repeat until stopping warning fires or pool is exhausted
 
+**Web UI backend** (`acquireml/api/`): a FastAPI app exposing the same
+session lifecycle over local HTTP, for the in-progress React frontend.
+`store.py` resolves session names to `~/.acquireml/sessions/<name>.db`
+(auto-discovered, no path ever comes from the client). `schemas.py`
+mirrors `Session`'s existing dict returns as Pydantic models. `app.py` is
+a thin translation layer — no session/model logic lives here. Run with
+`make api` (or `uvicorn acquireml.api.app:app --reload`).
+
 ## Feature Roadmap
 
 Building one at a time, each on its own branch, merged to main once 100% tested:

@@ -6,7 +6,7 @@
 
 PYTHON ?= python3
 
-.PHONY: install run compare compare-cip explore explain recommend test clean
+.PHONY: install run compare compare-cip explore explain recommend test clean api
 
 ## install      — install the package and all dependencies
 install:
@@ -76,3 +76,7 @@ clean:
 	      data_overview.png azm_importance.png cip_importance.png \
 	      azm_validation.png cip_validation.png \
 	      recommendations.csv demo_recommendations.csv
+
+## api          — run the web UI backend API (dev server, auto-reload)
+api:
+	$(PYTHON) -m uvicorn acquireml.api.app:app --reload --port 8000
