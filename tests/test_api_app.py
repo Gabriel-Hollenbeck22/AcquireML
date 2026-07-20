@@ -143,6 +143,42 @@ def test_create_session_invalid_model_400s(client, labeled_csv):
     assert resp.status_code == 400
 
 
+def test_create_session_duplicate_name_leaves_no_orphaned_upload(client, labeled_csv):
+    with open(labeled_csv, "rb") as f:
+        client.post(
+            "/sessions",
+            data={"name": "azm-project", "label_col": "outcome"},
+            files={"labeled_file": ("labeled.csv", f, "text/csv")},
+        )
+    data_dir = api_app.store.SESSIONS_DIR / "azm-project_data"
+    files_after_success = sorted(p.name for p in data_dir.iterdir())
+    assert len(files_after_success) == 1  # the original labeled_file upload
+
+    with open(labeled_csv, "rb") as f:
+        resp = client.post(
+            "/sessions",
+            data={"name": "azm-project", "label_col": "outcome"},
+            files={"labeled_file": ("labeled.csv", f, "text/csv")},
+        )
+    assert resp.status_code == 409
+
+    files_after_failed_retry = sorted(p.name for p in data_dir.iterdir())
+    assert files_after_failed_retry == files_after_success
+
+
+def test_create_session_invalid_model_leaves_no_upload(client, labeled_csv):
+    with open(labeled_csv, "rb") as f:
+        resp = client.post(
+            "/sessions",
+            data={"name": "bad-model-project", "label_col": "outcome", "model": "not-a-model"},
+            files={"labeled_file": ("labeled.csv", f, "text/csv")},
+        )
+    assert resp.status_code == 400
+
+    data_dir = api_app.store.SESSIONS_DIR / "bad-model-project_data"
+    assert not data_dir.exists() or list(data_dir.iterdir()) == []
+
+
 def _create_session(client, labeled_csv, name="azm-project"):
     with open(labeled_csv, "rb") as f:
         client.post(

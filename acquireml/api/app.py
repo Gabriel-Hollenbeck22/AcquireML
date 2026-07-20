@@ -102,20 +102,36 @@ def create_session(
     labeled_path = _save_upload(labeled_file, data_dir)
     pool_path = _save_upload(pool_file, data_dir) if pool_file else None
 
-    with Session(db_path) as sess:
-        summary = sess.init(
-            data_path=labeled_path,
-            label_col=label_col,
-            pool_path=pool_path,
-            name=name,
-            patience=patience,
-            min_delta=min_delta,
-            cost_per_sample=cost_per_sample,
-            diversity_weight=diversity_weight,
-            model=model,
-            calibrate=calibrate,
-            calibration_method=calibration_method,
-        )
+    try:
+        with Session(db_path) as sess:
+            summary = sess.init(
+                data_path=labeled_path,
+                label_col=label_col,
+                pool_path=pool_path,
+                name=name,
+                patience=patience,
+                min_delta=min_delta,
+                cost_per_sample=cost_per_sample,
+                diversity_weight=diversity_weight,
+                model=model,
+                calibrate=calibrate,
+                calibration_method=calibration_method,
+            )
+    except Exception:
+        # init() failed (duplicate name, invalid model, ...) — the uploads
+        # we just wrote are orphaned (no session record points to them), so
+        # remove exactly those files before re-raising unchanged. NOTE:
+        # data_dir is shared by name, so on a duplicate-name retry it may
+        # already contain files from a prior *successful* init() — must not
+        # rmtree() the whole directory, only unlink what this request wrote.
+        labeled_path.unlink(missing_ok=True)
+        if pool_path is not None:
+            pool_path.unlink(missing_ok=True)
+        try:
+            data_dir.rmdir()  # no-op (raises, caught) if not empty
+        except OSError:
+            pass
+        raise
 
     return SessionCreateResponse(
         name=summary["name"],
