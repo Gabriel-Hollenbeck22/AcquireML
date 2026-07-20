@@ -308,3 +308,15 @@ def test_delete_removes_session(client, labeled_csv):
 def test_delete_unknown_session_404s(client):
     resp = client.delete("/sessions/nope")
     assert resp.status_code == 404
+
+
+def test_delete_removes_upload_data_dir(client, labeled_csv):
+    _create_session(client, labeled_csv)
+    data_dir = api_app.store.SESSIONS_DIR / "azm-project_data"
+    assert data_dir.exists()
+    assert list(data_dir.iterdir())  # the uploaded labeled_file
+
+    resp = client.delete("/sessions/azm-project")
+    assert resp.status_code == 204
+
+    assert not data_dir.exists()

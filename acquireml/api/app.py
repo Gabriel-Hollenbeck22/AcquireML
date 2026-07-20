@@ -6,6 +6,7 @@ Session method call and its return dict into a Pydantic response model.
 """
 from __future__ import annotations
 
+import shutil
 import tempfile
 import uuid
 from pathlib import Path
@@ -282,4 +283,13 @@ def delete_session(name: str, sess: Session = Depends(get_session)) -> Response:
     db_path.unlink(missing_ok=True)
     report_path = db_path.with_name(f"{db_path.stem}_report.png")
     report_path.unlink(missing_ok=True)
+    # Remove this session's uploaded labeled/pool files too. `{name}_data/`
+    # is exclusively this session's directory by construction (create_session
+    # names it from the session name, and every POST /sessions upload gets a
+    # fresh random filename inside it) — nothing else can reference it once
+    # the session record above is gone, so an unconditional rmtree is safe
+    # here (unlike Task 6's partial-failure cleanup, where a live sibling
+    # session could still share the directory).
+    data_dir = store.SESSIONS_DIR / f"{name}_data"
+    shutil.rmtree(data_dir, ignore_errors=True)
     return Response(status_code=204)
