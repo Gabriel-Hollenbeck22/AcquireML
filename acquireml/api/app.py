@@ -6,7 +6,6 @@ Session method call and its return dict into a Pydantic response model.
 """
 from __future__ import annotations
 
-import tempfile
 import uuid
 from pathlib import Path
 
@@ -16,6 +15,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from acquireml.api import store
 from acquireml.api.schemas import (
     HistoryRow,
+    RecommendResponse,
+    RecommendRow,
     SessionCreateResponse,
     SessionSummary,
     StatusResponse,
@@ -64,7 +65,14 @@ def get_session(name: str) -> Session:
 
 def _save_upload(upload: UploadFile, dest_dir: Path) -> Path:
     """Save an uploaded file to disk, preserving its extension (the
-    loaders dispatch on extension, so this must survive the upload)."""
+    loaders dispatch on extension, so this must survive the upload).
+
+    Saved under the sessions directory (not a temp dir) because Session
+    does not persist feature data in its .db file — every subsequent
+    call (recommend, update, ...) reloads X from the resolved path
+    stored in session meta, so the file must outlive this request.
+    """
+    dest_dir.mkdir(parents=True, exist_ok=True)
     suffix = Path(upload.filename or "").suffix or ".csv"
     dest = dest_dir / f"{uuid.uuid4().hex}{suffix}"
     dest.write_bytes(upload.file.read())
@@ -86,25 +94,28 @@ def create_session(
     calibration_method: str = Form("sigmoid"),
 ) -> SessionCreateResponse:
     store.ensure_sessions_dir(base_dir=store.SESSIONS_DIR)
-    with tempfile.TemporaryDirectory() as tmp:
-        tmp_dir = Path(tmp)
-        labeled_path = _save_upload(labeled_file, tmp_dir)
-        pool_path = _save_upload(pool_file, tmp_dir) if pool_file else None
+    # Resolve (and validate) the session's .db path before touching disk —
+    # session_path() rejects unsafe names (path separators, "..") and we
+    # want that check to run before any upload is written.
+    db_path = store.session_path(name, base_dir=store.SESSIONS_DIR)
+    data_dir = store.SESSIONS_DIR / f"{name}_data"
+    labeled_path = _save_upload(labeled_file, data_dir)
+    pool_path = _save_upload(pool_file, data_dir) if pool_file else None
 
-        with Session(store.session_path(name, base_dir=store.SESSIONS_DIR)) as sess:
-            summary = sess.init(
-                data_path=labeled_path,
-                label_col=label_col,
-                pool_path=pool_path,
-                name=name,
-                patience=patience,
-                min_delta=min_delta,
-                cost_per_sample=cost_per_sample,
-                diversity_weight=diversity_weight,
-                model=model,
-                calibrate=calibrate,
-                calibration_method=calibration_method,
-            )
+    with Session(db_path) as sess:
+        summary = sess.init(
+            data_path=labeled_path,
+            label_col=label_col,
+            pool_path=pool_path,
+            name=name,
+            patience=patience,
+            min_delta=min_delta,
+            cost_per_sample=cost_per_sample,
+            diversity_weight=diversity_weight,
+            model=model,
+            calibrate=calibrate,
+            calibration_method=calibration_method,
+        )
 
     return SessionCreateResponse(
         name=summary["name"],
@@ -167,3 +178,24 @@ def get_status(sess: Session = Depends(get_session)) -> StatusResponse:
 def get_history(sess: Session = Depends(get_session)) -> list[HistoryRow]:
     with sess:
         return [HistoryRow(**row) for row in sess.history()]
+
+
+@app.get("/sessions/{name}/recommend", response_model=RecommendResponse)
+def recommend(batch_size: int = 10, sess: Session = Depends(get_session)) -> RecommendResponse:
+    with sess:
+        df = sess.recommend(batch_size=batch_size)
+        rows = [
+            RecommendRow(
+                rank=int(row.rank),
+                sample_id=str(row.sample_id),
+                uncertainty_score=float(row.uncertainty_score),
+                p_positive=float(row.p_positive),
+                predicted_class=row.predicted_class,
+            )
+            for row in df.itertuples()
+        ]
+        return RecommendResponse(
+            rows=rows,
+            should_stop=bool(df.attrs.get("should_stop", False)),
+            stop_reason=df.attrs.get("stop_reason", ""),
+        )

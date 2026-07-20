@@ -162,3 +162,50 @@ def test_get_history_empty_for_new_session(client, labeled_csv):
 def test_get_history_404s_for_unknown_session(client):
     resp = client.get("/sessions/nope/history")
     assert resp.status_code == 404
+
+
+def _create_session_with_pool(client, labeled_csv, tmp_path, name="azm-project"):
+    import numpy as np
+    import pandas as pd
+    rng = np.random.default_rng(7)
+    pool_df = pd.DataFrame(
+        rng.integers(0, 2, size=(30, 10)).astype(int),
+        index=[f"pool_{i}" for i in range(30)],
+        columns=[f"f{j}" for j in range(10)],
+    )
+    pool_csv = tmp_path / "pool.csv"
+    pool_df.to_csv(pool_csv)
+    with open(labeled_csv, "rb") as lf, open(pool_csv, "rb") as pf:
+        client.post(
+            "/sessions",
+            data={"name": name, "label_col": "outcome"},
+            files={
+                "labeled_file": ("labeled.csv", lf, "text/csv"),
+                "pool_file": ("pool.csv", pf, "text/csv"),
+            },
+        )
+
+
+def test_recommend_returns_batch(client, labeled_csv, tmp_path):
+    _create_session_with_pool(client, labeled_csv, tmp_path)
+    resp = client.get("/sessions/azm-project/recommend?batch_size=5")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert len(body["rows"]) == 5
+    assert set(body["rows"][0].keys()) == {
+        "rank", "sample_id", "uncertainty_score", "p_positive", "predicted_class",
+    }
+    assert "should_stop" in body
+
+
+def test_recommend_empty_pool_409s(client, labeled_csv):
+    _create_session(client, labeled_csv)  # no pool file uploaded
+    resp = client.get("/sessions/azm-project/recommend")
+    assert resp.status_code == 409
+
+
+def test_recommend_pending_unresolved_409s(client, labeled_csv, tmp_path):
+    _create_session_with_pool(client, labeled_csv, tmp_path)
+    client.get("/sessions/azm-project/recommend?batch_size=5")
+    resp = client.get("/sessions/azm-project/recommend?batch_size=5")
+    assert resp.status_code == 409
