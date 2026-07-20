@@ -44,6 +44,7 @@ paths (`data/...`) will not resolve.
 - `make explain`   — rank predictive DNA fragments → azm_importance.png
 - `make recommend` — rank new unlabeled strains (edit --input-file first)
 - `make validate`  — holdout test on unseen strains → azm_validation.png
+- `make api`       — run the web UI backend API (dev server, auto-reload)
 - `make test`      — run all tests (100 on main)
 
 CLI entry point: `acquireml --antibiotic azm --iterations 10` (registered via pyproject.toml).
@@ -77,9 +78,11 @@ acquireml/                  Python package
   session_cli.py            CLI subcommands for the session workflow
   round_report.py           Generates the accuracy/cost progress PNG after each session update
   demo.py                   Synthetic data generator + `acquireml demo --init` zero-setup session
-tests/                      179 tests (test_loader/test_engine/test_recommend/test_validate/
+  api/                      FastAPI web UI backend — store.py (session path resolution),
+                              schemas.py (Pydantic models), app.py (the FastAPI app + endpoints)
+tests/                      221 tests (test_loader/test_engine/test_recommend/test_validate/
                               test_generic_loader/test_session/test_explain/test_round_report/
-                              test_demo)
+                              test_demo/test_api_store/test_api_schemas/test_api_app)
 docs/                       Charts committed for README display (PNGs)
 data/                       archive.zip + extracted .Rtab + metadata.csv (NOT in git — too big)
 Makefile                   Developer shortcuts
