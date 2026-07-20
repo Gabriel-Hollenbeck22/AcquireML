@@ -245,3 +245,29 @@ def test_recommend_pending_unresolved_409s(client, labeled_csv, tmp_path):
     client.get("/sessions/azm-project/recommend?batch_size=5")
     resp = client.get("/sessions/azm-project/recommend?batch_size=5")
     assert resp.status_code == 409
+
+
+def test_update_submits_results_and_retrains(client, labeled_csv, tmp_path):
+    _create_session_with_pool(client, labeled_csv, tmp_path)
+    rec = client.get("/sessions/azm-project/recommend?batch_size=5").json()
+    results = [
+        {"sample_id": row["sample_id"], "label": i % 2}
+        for i, row in enumerate(rec["rows"])
+    ]
+    resp = client.post("/sessions/azm-project/update", json={"results": results})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["round"] == 1
+    assert body["n_returned"] == 5
+    assert body["n_known"] == 25
+    assert 0.0 <= body["accuracy"] <= 1.0
+
+
+def test_update_no_matching_results_400s(client, labeled_csv, tmp_path):
+    _create_session_with_pool(client, labeled_csv, tmp_path)
+    client.get("/sessions/azm-project/recommend?batch_size=5")
+    resp = client.post(
+        "/sessions/azm-project/update",
+        json={"results": [{"sample_id": "not_a_real_id", "label": 1}]},
+    )
+    assert resp.status_code == 400

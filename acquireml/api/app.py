@@ -6,9 +6,11 @@ Session method call and its return dict into a Pydantic response model.
 """
 from __future__ import annotations
 
+import tempfile
 import uuid
 from pathlib import Path
 
+import pandas as pd
 from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -20,6 +22,8 @@ from acquireml.api.schemas import (
     SessionCreateResponse,
     SessionSummary,
     StatusResponse,
+    UpdateRequest,
+    UpdateResponse,
 )
 from acquireml.session import Session
 
@@ -214,4 +218,27 @@ def recommend(batch_size: int = 10, sess: Session = Depends(get_session)) -> Rec
             rows=rows,
             should_stop=bool(df.attrs.get("should_stop", False)),
             stop_reason=df.attrs.get("stop_reason", ""),
+        )
+
+
+@app.post("/sessions/{name}/update", response_model=UpdateResponse)
+def update(body: UpdateRequest, sess: Session = Depends(get_session)) -> UpdateResponse:
+    with sess:
+        with tempfile.TemporaryDirectory() as tmp:
+            results_path = Path(tmp) / "results.csv"
+            pd.DataFrame(
+                [{"sample_id": r.sample_id, "label": r.label} for r in body.results]
+            ).to_csv(results_path, index=False)
+            result = sess.update(results_path)
+
+        return UpdateResponse(
+            round=result["round"],
+            n_returned=result["n_returned"],
+            n_known=result["n_known"],
+            n_pool=result["n_pool"],
+            accuracy=result["accuracy"],
+            round_cost=result["round_cost"],
+            cumulative_cost=result["cumulative_cost"],
+            should_stop=result["should_stop"],
+            stop_reason=result["stop_reason"],
         )
