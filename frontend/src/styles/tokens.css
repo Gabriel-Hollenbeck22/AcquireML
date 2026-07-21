@@ -1,0 +1,18 @@
+:root {
+  --paper: #14110e;
+  --paper-raised: #1e1913;
+  --ink: #ede6d6;
+  --ink-soft: #b7ac94;
+  --ink-faint: #8a8069;
+  --accent: #c9a24b;
+  --accent-bright: #e0bd6c;
+  --brass: #9c7a3e;
+  --red-data: #a6534c;
+  --line: #332c21;
+  --line-strong: #4a4030;
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
+
+  --font-display: "Cormorant", Georgia, serif;
+  --font-body: "Manrope", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
+}
