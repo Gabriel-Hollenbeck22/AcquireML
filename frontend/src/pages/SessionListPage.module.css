@@ -1,0 +1,59 @@
+.container {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 3rem 2rem;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 2rem;
+}
+
+.newLink {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  text-decoration: none;
+  color: var(--paper);
+  background: var(--accent);
+  padding: 0.6rem 1rem;
+  border-radius: 3px;
+}
+
+.newLink:hover {
+  background: var(--accent-bright);
+}
+
+.sessionCard {
+  display: block;
+  padding: 1.2rem 1.4rem;
+  margin-bottom: 0.8rem;
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+
+.sessionName {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  color: var(--ink);
+}
+
+.sessionMeta {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--ink-faint);
+  margin-top: 0.3rem;
+}
+
+.empty,
+.error,
+.loading {
+  font-family: var(--font-mono);
+  color: var(--ink-soft);
+}
+
+.error {
+  color: var(--red-data);
+}
