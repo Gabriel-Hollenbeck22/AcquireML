@@ -191,12 +191,28 @@ accuracy/cost progress PNG is regenerated via `round_report.generate_round_repor
 5. Repeat until stopping warning fires or pool is exhausted
 
 **Web UI backend** (`acquireml/api/`): a FastAPI app exposing the same
-session lifecycle over local HTTP, for the in-progress React frontend.
-`store.py` resolves session names to `~/.acquireml/sessions/<name>.db`
+session lifecycle over local HTTP, for the React frontend. `store.py`
+resolves session names to `~/.acquireml/sessions/<name>.db`
 (auto-discovered, no path ever comes from the client). `schemas.py`
 mirrors `Session`'s existing dict returns as Pydantic models. `app.py` is
 a thin translation layer — no session/model logic lives here. Run with
 `make api` (or `uvicorn acquireml.api.app:app --reload`).
+
+**Web UI frontend** (`frontend/`): React + TypeScript + Vite, talking to
+the backend at `http://localhost:8000`. `src/api/client.ts` is the sole
+place that knows the backend's URL and response shapes — every
+page/component imports typed functions from it, never calls `fetch`
+directly. `src/styles/tokens.css` carries the same Noir & Gold design
+tokens as the landing page (`docs/index.html`) — same hex values, same
+three typefaces (Cormorant, Manrope, IBM Plex Mono), loaded from Google
+Fonts' CDN instead of inlined (that inlining was only needed for the
+landing page's strict-CSP artifact renderer). Currently covers session
+list + creation (`SessionListPage`, `NewSessionPage`) — dashboard,
+recommendations, and history are a follow-up plan. Run with `npm run dev`
+from `frontend/` (needs the backend running too — `make api` in another
+terminal). Test with `npm test` from `frontend/`; type-check with
+`npx tsc --noEmit`. Verified end-to-end against the real backend in a
+real browser, not just each side's own mocked tests.
 
 ## Feature Roadmap
 
