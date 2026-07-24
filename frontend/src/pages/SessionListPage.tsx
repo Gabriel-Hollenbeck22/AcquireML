@@ -44,7 +44,11 @@ export default function SessionListPage() {
 
       {state.status === "loaded" &&
         state.sessions.map((session) => (
-          <div key={session.name} className={styles.sessionCard}>
+          <Link
+            key={session.name}
+            to={`/sessions/${session.name}`}
+            className={styles.sessionCard}
+          >
             <div className={styles.sessionName}>{session.name}</div>
             <div className={styles.sessionMeta}>
               Round {session.current_round} · {session.n_known} known ·{" "}
@@ -52,7 +56,7 @@ export default function SessionListPage() {
               {session.latest_accuracy !== null &&
                 ` · ${(session.latest_accuracy * 100).toFixed(1)}% accuracy`}
             </div>
-          </div>
+          </Link>
         ))}
     </div>
   );

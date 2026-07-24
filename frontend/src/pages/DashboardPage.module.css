@@ -1,0 +1,46 @@
+.loading,
+.error,
+.empty {
+  font-family: var(--font-mono);
+  color: var(--ink-soft);
+}
+
+.error {
+  color: var(--red-data);
+}
+
+.stopBanner {
+  background: var(--paper-raised);
+  border-left: 3px solid var(--brass);
+  padding: 0.9rem 1.1rem;
+  margin-bottom: 1.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+
+.statRow {
+  display: flex;
+  gap: 2.2rem;
+  margin-bottom: 2rem;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.statValue {
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  color: var(--ink);
+}
+
+.statLabel {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-top: 0.2rem;
+}
