@@ -37,6 +37,66 @@ export interface CreateSessionInput {
   calibrationMethod?: string;
 }
 
+export interface StatusResponse {
+  name: string | null;
+  current_round: number;
+  n_known: number;
+  n_pool: number;
+  n_pending: number;
+  latest_accuracy: number | null;
+  patience: number;
+  min_delta: number;
+  cost_per_sample: number | null;
+  total_cost: number | null;
+  diversity_weight: number;
+  model: string;
+  calibrate: boolean;
+  calibration_method: string;
+  should_stop: boolean;
+  stop_reason: string;
+  created_at: string | null;
+}
+
+export interface HistoryRow {
+  round_number: number;
+  n_known: number;
+  accuracy: number | null;
+  round_cost: number | null;
+  cumulative_cost: number | null;
+  created_at: string;
+}
+
+export interface RecommendRow {
+  rank: number;
+  sample_id: string;
+  uncertainty_score: number;
+  p_positive: number;
+  predicted_class: string;
+}
+
+export interface RecommendResponse {
+  rows: RecommendRow[];
+  should_stop: boolean;
+  stop_reason: string;
+}
+
+export interface ResultRow {
+  sample_id: string;
+  label: number;
+}
+
+export interface UpdateResponse {
+  round: number;
+  n_returned: number;
+  n_known: number;
+  n_pool: number;
+  accuracy: number;
+  round_cost: number | null;
+  cumulative_cost: number | null;
+  should_stop: boolean;
+  stop_reason: string;
+}
+
 async function parseErrorDetail(response: Response): Promise<string> {
   try {
     const body = await response.json();
@@ -81,4 +141,58 @@ export async function createSession(
     throw new Error(await parseErrorDetail(response));
   }
   return response.json();
+}
+
+export async function getStatus(name: string): Promise<StatusResponse> {
+  const response = await fetch(`${API_BASE_URL}/sessions/${encodeURIComponent(name)}/status`);
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response));
+  }
+  return response.json();
+}
+
+export async function getHistory(name: string): Promise<HistoryRow[]> {
+  const response = await fetch(`${API_BASE_URL}/sessions/${encodeURIComponent(name)}/history`);
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response));
+  }
+  return response.json();
+}
+
+export async function getRecommendations(
+  name: string,
+  batchSize?: number
+): Promise<RecommendResponse> {
+  const url = new URL(`${API_BASE_URL}/sessions/${encodeURIComponent(name)}/recommend`);
+  if (batchSize !== undefined) {
+    url.searchParams.set("batch_size", String(batchSize));
+  }
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response));
+  }
+  return response.json();
+}
+
+export async function submitResults(
+  name: string,
+  results: ResultRow[]
+): Promise<UpdateResponse> {
+  const response = await fetch(`${API_BASE_URL}/sessions/${encodeURIComponent(name)}/update`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ results }),
+  });
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response));
+  }
+  return response.json();
+}
+
+export async function exportHistory(name: string): Promise<Blob> {
+  const response = await fetch(`${API_BASE_URL}/sessions/${encodeURIComponent(name)}/export`);
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response));
+  }
+  return response.blob();
 }
