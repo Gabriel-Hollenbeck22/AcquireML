@@ -4,6 +4,7 @@ import NewSessionPage from "./pages/NewSessionPage";
 import SessionLayout from "./components/SessionLayout";
 import DashboardPage from "./pages/DashboardPage";
 import RecommendationsPage from "./pages/RecommendationsPage";
+import HistoryPage from "./pages/HistoryPage";
 
 export default function App() {
   return (
@@ -14,7 +15,7 @@ export default function App() {
         <Route path="/sessions/:name" element={<SessionLayout />}>
           <Route index element={<DashboardPage />} />
           <Route path="recommend" element={<RecommendationsPage />} />
-          <Route path="history" element={<div>History (coming in Task 5)</div>} />
+          <Route path="history" element={<HistoryPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
