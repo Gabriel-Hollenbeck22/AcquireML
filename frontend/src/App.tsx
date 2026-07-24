@@ -3,6 +3,7 @@ import SessionListPage from "./pages/SessionListPage";
 import NewSessionPage from "./pages/NewSessionPage";
 import SessionLayout from "./components/SessionLayout";
 import DashboardPage from "./pages/DashboardPage";
+import RecommendationsPage from "./pages/RecommendationsPage";
 
 export default function App() {
   return (
@@ -12,7 +13,7 @@ export default function App() {
         <Route path="/new" element={<NewSessionPage />} />
         <Route path="/sessions/:name" element={<SessionLayout />}>
           <Route index element={<DashboardPage />} />
-          <Route path="recommend" element={<div>Recommendations (coming in Task 4)</div>} />
+          <Route path="recommend" element={<RecommendationsPage />} />
           <Route path="history" element={<div>History (coming in Task 5)</div>} />
         </Route>
       </Routes>
