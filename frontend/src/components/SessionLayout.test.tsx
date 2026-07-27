@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import SessionLayout from "./SessionLayout";
+import styles from "./SessionLayout.module.css";
 
 function renderAt(path: string) {
   return render(
@@ -25,14 +26,14 @@ describe("SessionLayout", () => {
 
   it("marks only the Dashboard link active on the index route", () => {
     renderAt("/sessions/azm-project");
-    expect(screen.getByRole("link", { name: "Dashboard" })).toHaveClass("active");
-    expect(screen.getByRole("link", { name: "Recommendations" })).not.toHaveClass("active");
-    expect(screen.getByRole("link", { name: "History" })).not.toHaveClass("active");
+    expect(screen.getByRole("link", { name: "Dashboard" })).toHaveClass(styles.active);
+    expect(screen.getByRole("link", { name: "Recommendations" })).not.toHaveClass(styles.active);
+    expect(screen.getByRole("link", { name: "History" })).not.toHaveClass(styles.active);
   });
 
   it("marks only the Recommendations link active on the recommend route", () => {
     renderAt("/sessions/azm-project/recommend");
-    expect(screen.getByRole("link", { name: "Dashboard" })).not.toHaveClass("active");
-    expect(screen.getByRole("link", { name: "Recommendations" })).toHaveClass("active");
+    expect(screen.getByRole("link", { name: "Dashboard" })).not.toHaveClass(styles.active);
+    expect(screen.getByRole("link", { name: "Recommendations" })).toHaveClass(styles.active);
   });
 });
