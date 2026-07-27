@@ -214,8 +214,9 @@ data/*.zip
 # Jupyter notebooks — reference material only, not part of the package
 *.ipynb
 
-# Demo / generated CSVs (derived from the raw dataset)
+# Demo / generated CSVs and data (derived from the raw dataset)
 demo_*.csv
+demo_data/
 recommendations.csv
 
 # Generated outputs (root-level only — docs/ images are committed intentionally)
