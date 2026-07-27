@@ -21,13 +21,25 @@
 
 .statRow {
   display: flex;
-  gap: 2.2rem;
-  margin-bottom: 2rem;
+  gap: 0.8rem;
+  margin-bottom: 1.5rem;
 }
 
 .stat {
+  flex: 1;
   display: flex;
   flex-direction: column;
+  padding: 0.9rem 1.1rem;
+  border-radius: 8px;
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.stat:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(224, 189, 108, 0.25), 0 8px 24px rgba(0, 0, 0, 0.4);
+  transform: translateY(-1px);
 }
 
 .statValue {

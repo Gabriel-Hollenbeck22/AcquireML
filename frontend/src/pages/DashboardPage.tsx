@@ -7,6 +7,7 @@ import {
   type StatusResponse,
 } from "../api/client";
 import AccuracyChart from "../components/AccuracyChart";
+import { useCountUp } from "../hooks/useCountUp";
 import styles from "./DashboardPage.module.css";
 
 type LoadState =
@@ -33,6 +34,21 @@ export default function DashboardPage() {
     };
   }, [name]);
 
+  // Hooks run unconditionally on every render, so compute safe fallbacks
+  // here rather than after the loading/error early returns below.
+  const round = state.status === "loaded" ? state.sessionStatus.current_round : 0;
+  const known = state.status === "loaded" ? state.sessionStatus.n_known : 0;
+  const pool = state.status === "loaded" ? state.sessionStatus.n_pool : 0;
+  const accuracyTarget =
+    state.status === "loaded" && state.sessionStatus.latest_accuracy !== null
+      ? state.sessionStatus.latest_accuracy * 100
+      : 0;
+
+  const animatedRound = Math.round(useCountUp(round));
+  const animatedKnown = Math.round(useCountUp(known));
+  const animatedPool = Math.round(useCountUp(pool));
+  const animatedAccuracy = useCountUp(accuracyTarget);
+
   if (state.status === "loading") return <p className={styles.loading}>Loading…</p>;
   if (state.status === "error") return <p className={styles.error}>{state.message}</p>;
 
@@ -48,22 +64,20 @@ export default function DashboardPage() {
 
       <div className={styles.statRow}>
         <div className={styles.stat}>
-          <div className={styles.statValue}>{sessionStatus.current_round}</div>
+          <div className={styles.statValue}>{animatedRound}</div>
           <div className={styles.statLabel}>Round</div>
         </div>
         <div className={styles.stat}>
-          <div className={styles.statValue}>{sessionStatus.n_known}</div>
+          <div className={styles.statValue}>{animatedKnown}</div>
           <div className={styles.statLabel}>Known</div>
         </div>
         <div className={styles.stat}>
-          <div className={styles.statValue}>{sessionStatus.n_pool}</div>
+          <div className={styles.statValue}>{animatedPool}</div>
           <div className={styles.statLabel}>In pool</div>
         </div>
         <div className={styles.stat}>
           <div className={styles.statValue}>
-            {sessionStatus.latest_accuracy !== null
-              ? `${(sessionStatus.latest_accuracy * 100).toFixed(1)}%`
-              : "—"}
+            {sessionStatus.latest_accuracy !== null ? `${animatedAccuracy.toFixed(1)}%` : "—"}
           </div>
           <div className={styles.statLabel}>Accuracy</div>
         </div>

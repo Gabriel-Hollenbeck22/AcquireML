@@ -54,11 +54,21 @@ describe("DashboardPage", () => {
 
     expect(screen.getByText(/loading/i)).toBeInTheDocument();
 
-    await waitFor(() => {
-      expect(screen.getByText("2")).toBeInTheDocument();
-    });
+    // Wait on the accuracy stat, not the round stat: round's target (2) is small
+    // enough that Math.round matches it well before the animation actually
+    // settles (e.g. Math.round(2 * 0.75) already equals 2), while accuracy is
+    // rendered as an unrounded float via toFixed(1), which only stabilizes at
+    // "93.0%" once the animation reaches its final frame (progress === 1). By
+    // the time that's true, every stat (which all mount and animate together
+    // over the same default duration) has settled too.
+    await waitFor(
+      () => {
+        expect(screen.getByText("93.0%")).toBeInTheDocument();
+      },
+      { timeout: 2000 }
+    );
+    expect(screen.getByText("2")).toBeInTheDocument();
     expect(screen.getByText("45")).toBeInTheDocument();
-    expect(screen.getByText("93.0%")).toBeInTheDocument();
   });
 
   it("shows a stopping-recommended banner when should_stop is true", async () => {
