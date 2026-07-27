@@ -155,7 +155,7 @@ across many features (matches its multi-gene biology).
 - `main` — Phases 1–3 + holdout validation + real-world engine + stopping criteria +
   cost tracking + batch diversity + round report + VCF support + model selection +
   calibration + demo mode + AZM recall threshold tuning + landing page + full web UI
-  (FastAPI backend + React frontend, all 5 pages). 221 backend tests + 41 frontend
+  (FastAPI backend + React frontend, all 5 pages). 221 backend tests + 47 frontend
   tests. Stable. Pushed to GitHub. Repo is public.
 - All feature branches (`feature/real-world-engine`, `feature/stopping-criteria`,
   `feature/cost-tracking`, `feature/batch-diversity`, `feature/round-report`,
@@ -204,11 +204,13 @@ a thin translation layer — no session/model logic lives here. Run with
 the backend at `http://localhost:8000`. `src/api/client.ts` is the sole
 place that knows the backend's URL and response shapes — every
 page/component imports typed functions from it, never calls `fetch`
-directly. `src/styles/tokens.css` carries the same Noir & Gold design
-tokens as the landing page (`docs/index.html`) — same hex values, same
-three typefaces (Cormorant, Manrope, IBM Plex Mono), loaded from Google
-Fonts' CDN instead of inlined (that inlining was only needed for the
-landing page's strict-CSP artifact renderer). Covers the full session
+directly. `src/styles/tokens.css` carries the same Noir & Gold color
+palette as the landing page (`docs/index.html`) — same hex values —
+loaded from Google Fonts' CDN instead of inlined (that inlining was only
+needed for the landing page's strict-CSP artifact renderer); the fonts
+loaded are Manrope and IBM Plex Mono only (see the visual-system note
+below on why the landing page's serif face isn't among them). Covers
+the full session
 lifecycle across five pages: `SessionListPage` and `NewSessionPage`
 (create), `SessionLayout` (shared nav shell for the three session-scoped
 routes below), `DashboardPage` (status + stopping-warning banner +
@@ -217,7 +219,18 @@ result entry, submits to `/update`), and `HistoryPage` (round table +
 chart + CSV export). Routing is `/`, `/new`, and
 `/sessions/:name[/recommend|/history]` via nested React Router routes.
 Charts use Recharts, reading the same CSS custom-property tokens as the
-rest of the UI. 41 frontend tests. Run with `npm run dev` from
+rest of the UI. A later visual-overhaul pass gave the app a denser,
+motion-forward visual system distinct from the landing page: Manrope is
+used throughout (the landing page's serif face, Cormorant, is now
+reserved for the landing page only, never loaded by the app), and a
+shared `AppShell` component wraps every route, rendering a faint
+background grid texture, a slow scan-line sweep, and a cursor-reactive
+glow (via the `useCursorGlow` hook) behind the page content. Within that
+shell, `DashboardPage`'s stat cards animate their numbers in with a
+`useCountUp` hook, and the shared `AccuracyChart` card (used by both
+`DashboardPage` and `HistoryPage`) draws its line in on mount with a
+glow filter and a pulsing ring around the latest data point. 47 frontend
+tests. Run with `npm run dev` from
 `frontend/` (needs the backend running too — `make api` in another
 terminal). Test with `npm test` from `frontend/`; type-check with
 `npx tsc --noEmit`. Verified end-to-end against the real backend in a
@@ -255,7 +268,7 @@ scoped) would need fresh ideas from Gabe — see "Current Status & What's Next" 
 
 ## Current Status & What's Next
 
-221 backend tests + 41 frontend tests passing on main. Repo is public. All work
+221 backend tests + 47 frontend tests passing on main. Repo is public. All work
 pushed to GitHub.
 
 **Technical:** Full original feature roadmap complete (stopping criteria → cost
