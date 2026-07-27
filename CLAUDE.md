@@ -45,7 +45,7 @@ paths (`data/...`) will not resolve.
 - `make recommend` — rank new unlabeled strains (edit --input-file first)
 - `make validate`  — holdout test on unseen strains → azm_validation.png
 - `make api`       — run the web UI backend API (dev server, auto-reload)
-- `make test`      — run all tests (100 on main)
+- `make test`      — run all tests (221 on main)
 
 CLI entry point: `acquireml --antibiotic azm --iterations 10` (registered via pyproject.toml).
 
@@ -150,18 +150,20 @@ across many features (matches its multi-gene biology).
 - **Feature branch workflow:** one feature per branch, test until 100% green, demo running,
   then Gabe approves commit. Never commit mid-build. Never ask permission during a build.
 
-## Branch Map (as of 2026-06-16)
+## Branch Map (as of 2026-07-27)
 
 - `main` — Phases 1–3 + holdout validation + real-world engine + stopping criteria +
   cost tracking + batch diversity + round report + VCF support + model selection +
-  calibration + demo mode. 161 tests. Stable. Pushed to GitHub.
-- `feature/azm-recall-threshold-tuning` — cross-validated decision threshold tuning
-  (fixes AZM's 69.7% holdout recall → 89.9%). 179 tests. Not yet merged.
-- All nine feature branches (`feature/real-world-engine`, `feature/stopping-criteria`,
+  calibration + demo mode + AZM recall threshold tuning + landing page + full web UI
+  (FastAPI backend + React frontend, all 5 pages). 221 backend tests + 41 frontend
+  tests. Stable. Pushed to GitHub. Repo is public.
+- All feature branches (`feature/real-world-engine`, `feature/stopping-criteria`,
   `feature/cost-tracking`, `feature/batch-diversity`, `feature/round-report`,
   `feature/vcf-support`, `feature/model-selection`, `feature/calibration`,
   `feature/demo-mode`) are merged into `main`. They still exist as branches but are
-  no longer ahead of main.
+  no longer ahead of main. The web UI branches (`feature/web-ui-backend`,
+  `feature/web-ui-frontend-foundation`, `feature/web-ui-dashboard`) and
+  `feature/azm-recall-threshold-tuning` were merged and deleted after merge.
 - Reminder: after merging a feature branch into local main, always `git push origin main`
   right away — local merges are invisible on GitHub until pushed.
 
@@ -253,16 +255,22 @@ scoped) would need fresh ideas from Gabe — see "Current Status & What's Next" 
 
 ## Current Status & What's Next
 
-161 tests passing on main. Repo still private. All work pushed to GitHub.
+221 backend tests + 41 frontend tests passing on main. Repo is public. All work
+pushed to GitHub.
 
-**Technical:** Full feature roadmap complete (stopping criteria → cost tracking →
-batch diversity → round report → VCF support → model selection → calibration →
-demo mode). No specific next feature queued — check with Gabe for what's next
-(candidates: README refresh to showcase the session loop + demo mode, or moving
-into outreach prep now that the engine handles arbitrary real-world data formats).
+**Technical:** Full original feature roadmap complete (stopping criteria → cost
+tracking → batch diversity → round report → VCF support → model selection →
+calibration → demo mode), plus AZM recall threshold tuning, a landing page
+(`docs/index.html`), and a complete web UI — FastAPI backend (`acquireml/api/`)
+and a 5-page React frontend (`frontend/`) covering the full session lifecycle
+(create → recommend → submit results → dashboard/history → CSV export),
+verified end-to-end in a real browser against real servers. No specific next
+feature queued — check with Gabe for what's next (candidates: README refresh to
+showcase the web UI, or moving into outreach now that the repo is public and has
+a polished demo surface).
 
-**Outreach (paused pending repo going public):**
-- Pre-outreach prep: flip repo public (day before first email), write a founder's one-pager.
+**Outreach:**
+- Repo is public; landing page is live at `docs/index.html` (GitHub Pages).
 - Reach out to AMR researchers to LEARN (not pitch): top target Prof. Yonatan Grad (Harvard,
   N. gonorrhoeae genomics leader); also Dr. Nicole Wheeler (Birmingham, ML for AMR).
 - LinkedIn outreach prompt already drafted (ask Claude to surface it from conversation history).
