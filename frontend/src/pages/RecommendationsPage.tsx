@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   getRecommendations,
@@ -19,19 +19,32 @@ export default function RecommendationsPage() {
   const [labels, setLabels] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const fetchedForName = useRef<string | null>(null);
+  const isMounted = useRef(false);
 
   useEffect(() => {
     if (!name) return;
-    let cancelled = false;
-    getRecommendations(name)
-      .then((response) => {
-        if (!cancelled) setState({ status: "loaded", rows: response.rows });
-      })
-      .catch((err: Error) => {
-        if (!cancelled) setState({ status: "error", message: err.message });
-      });
+    isMounted.current = true;
+
+    // getRecommendations has a server-side side effect (marks the batch
+    // "pending"), so it must fire once per session even though React 18
+    // StrictMode double-invokes effects in development. The dedup key
+    // (fetchedForName) deliberately survives the phantom cleanup below —
+    // only isMounted resets there — so the one real request's resolution
+    // still reaches setState once the second (real) effect run re-mounts.
+    if (fetchedForName.current !== name) {
+      fetchedForName.current = name;
+      getRecommendations(name)
+        .then((response) => {
+          if (isMounted.current) setState({ status: "loaded", rows: response.rows });
+        })
+        .catch((err: Error) => {
+          if (isMounted.current) setState({ status: "error", message: err.message });
+        });
+    }
+
     return () => {
-      cancelled = true;
+      isMounted.current = false;
     };
   }, [name]);
 

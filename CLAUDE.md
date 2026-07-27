@@ -206,13 +206,28 @@ directly. `src/styles/tokens.css` carries the same Noir & Gold design
 tokens as the landing page (`docs/index.html`) — same hex values, same
 three typefaces (Cormorant, Manrope, IBM Plex Mono), loaded from Google
 Fonts' CDN instead of inlined (that inlining was only needed for the
-landing page's strict-CSP artifact renderer). Currently covers session
-list + creation (`SessionListPage`, `NewSessionPage`) — dashboard,
-recommendations, and history are a follow-up plan. Run with `npm run dev`
-from `frontend/` (needs the backend running too — `make api` in another
+landing page's strict-CSP artifact renderer). Covers the full session
+lifecycle across five pages: `SessionListPage` and `NewSessionPage`
+(create), `SessionLayout` (shared nav shell for the three session-scoped
+routes below), `DashboardPage` (status + stopping-warning banner +
+accuracy/cost chart), `RecommendationsPage` (batch table with inline 0/1
+result entry, submits to `/update`), and `HistoryPage` (round table +
+chart + CSV export). Routing is `/`, `/new`, and
+`/sessions/:name[/recommend|/history]` via nested React Router routes.
+Charts use Recharts, reading the same CSS custom-property tokens as the
+rest of the UI. 41 frontend tests. Run with `npm run dev` from
+`frontend/` (needs the backend running too — `make api` in another
 terminal). Test with `npm test` from `frontend/`; type-check with
 `npx tsc --noEmit`. Verified end-to-end against the real backend in a
-real browser, not just each side's own mocked tests.
+real browser (create → recommend → submit results → dashboard/history
+update → CSV export), not just each side's own mocked tests — this pass
+also caught and fixed a real bug: `RecommendationsPage`'s `GET /recommend`
+call has a server-side side effect (marks the batch "pending"), so React
+18 StrictMode's dev-mode double-invoke of effects made it fire twice and
+fail on the second call; fixed with a `useRef` dedup key guarding the
+fetch, separate from the mount-tracking ref (a plain `cancelled` flag
+isn't enough here, since the phantom StrictMode cleanup would mark the
+one real in-flight request as cancelled before it resolves).
 
 ## Feature Roadmap
 

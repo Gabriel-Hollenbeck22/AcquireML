@@ -1,11 +1,12 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { StrictMode } from "react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as client from "../api/client";
 import RecommendationsPage from "./RecommendationsPage";
 
-function renderAtSession(name: string) {
-  return render(
+function renderAtSession(name: string, { strict = false } = {}) {
+  const tree = (
     <MemoryRouter initialEntries={[`/sessions/${name}/recommend`]}>
       <Routes>
         <Route path="/sessions/:name/recommend" element={<RecommendationsPage />} />
@@ -13,6 +14,7 @@ function renderAtSession(name: string) {
       </Routes>
     </MemoryRouter>
   );
+  return render(strict ? <StrictMode>{tree}</StrictMode> : tree);
 }
 
 const sampleRows = [
@@ -113,5 +115,21 @@ describe("RecommendationsPage", () => {
       await screen.findByText(/enter at least one result/i)
     ).toBeInTheDocument();
     expect(submitSpy).not.toHaveBeenCalled();
+  });
+
+  it("fetches recommendations exactly once under StrictMode's double-invoked effects", async () => {
+    const getSpy = vi.spyOn(client, "getRecommendations").mockResolvedValue({
+      rows: sampleRows,
+      should_stop: false,
+      stop_reason: "",
+    });
+
+    renderAtSession("azm-project", { strict: true });
+
+    await waitFor(() => {
+      expect(screen.getByText("pool_3")).toBeInTheDocument();
+    });
+
+    expect(getSpy).toHaveBeenCalledTimes(1);
   });
 });
