@@ -56,9 +56,9 @@ export default function AccuracyChart({ history }: AccuracyChartProps) {
           yAxisId="accuracy"
           type="monotone"
           dataKey="accuracy"
-          stroke="var(--accent)"
+          stroke="var(--accent-deep)"
           strokeWidth={2}
-          dot={{ fill: "var(--accent)" }}
+          dot={{ fill: "var(--accent-deep)" }}
           name="Accuracy %"
         />
         {hasCost && (

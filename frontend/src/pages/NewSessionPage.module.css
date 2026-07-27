@@ -34,7 +34,7 @@
   font-family: var(--font-mono);
   font-size: 0.9rem;
   color: var(--paper);
-  background: var(--accent);
+  background: var(--accent-deep);
   border: none;
   padding: 0.75rem 1.4rem;
   border-radius: 3px;
@@ -42,7 +42,7 @@
 }
 
 .submit:hover {
-  background: var(--accent-bright);
+  background: var(--accent);
 }
 
 .validationError {

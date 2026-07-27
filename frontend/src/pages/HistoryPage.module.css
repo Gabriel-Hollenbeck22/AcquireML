@@ -28,8 +28,8 @@
 }
 
 .exportButton:hover {
-  border-color: var(--accent);
-  color: var(--accent);
+  border-color: var(--accent-deep);
+  color: var(--accent-deep);
 }
 
 .table {
