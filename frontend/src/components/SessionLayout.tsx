@@ -1,4 +1,4 @@
-import { Link, Outlet, useParams } from "react-router-dom";
+import { NavLink, Outlet, useParams } from "react-router-dom";
 import styles from "./SessionLayout.module.css";
 
 export default function SessionLayout() {
@@ -7,11 +7,27 @@ export default function SessionLayout() {
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        <div className={styles.sessionName}>{name}</div>
+        <div className={styles.sessionName}>SESSION://{name}</div>
         <nav className={styles.nav}>
-          <Link to={`/sessions/${name}`}>Dashboard</Link>
-          <Link to={`/sessions/${name}/recommend`}>Recommendations</Link>
-          <Link to={`/sessions/${name}/history`}>History</Link>
+          <NavLink
+            to={`/sessions/${name}`}
+            end
+            className={({ isActive }) => (isActive ? styles.active : undefined)}
+          >
+            Dashboard
+          </NavLink>
+          <NavLink
+            to={`/sessions/${name}/recommend`}
+            className={({ isActive }) => (isActive ? styles.active : undefined)}
+          >
+            Recommendations
+          </NavLink>
+          <NavLink
+            to={`/sessions/${name}/history`}
+            className={({ isActive }) => (isActive ? styles.active : undefined)}
+          >
+            History
+          </NavLink>
         </nav>
       </header>
       <main>

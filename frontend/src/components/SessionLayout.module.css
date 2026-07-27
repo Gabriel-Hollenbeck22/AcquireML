@@ -30,8 +30,31 @@
   font-size: 0.85rem;
   text-decoration: none;
   color: var(--ink-faint);
+  position: relative;
+  padding-bottom: 4px;
+  transition: color 0.15s ease;
+}
+
+.nav a::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 100%;
+  bottom: 0;
+  height: 1.5px;
+  background: var(--accent);
+  transition: right 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .nav a:hover {
-  color: var(--accent-deep);
+  color: var(--accent);
+}
+
+.nav a:hover::after,
+.nav a.active::after {
+  right: 0;
+}
+
+.nav a.active {
+  color: var(--accent);
 }
