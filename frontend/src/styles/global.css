@@ -35,3 +35,40 @@ a {
 button {
   font-family: var(--font-mono);
 }
+
+.bracket {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid var(--line-strong);
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+.bracket-tl {
+  top: 6px;
+  left: 6px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.bracket-tr {
+  top: 6px;
+  right: 6px;
+  border-left: none;
+  border-bottom: none;
+}
+
+.bracket-bl {
+  bottom: 6px;
+  left: 6px;
+  border-right: none;
+  border-top: none;
+}
+
+.bracket-br {
+  bottom: 6px;
+  right: 6px;
+  border-left: none;
+  border-top: none;
+}
