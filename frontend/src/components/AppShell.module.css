@@ -1,0 +1,56 @@
+.shell {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+.shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(rgba(224, 189, 108, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(224, 189, 108, 0.04) 1px, transparent 1px);
+  background-size: 24px 24px;
+  pointer-events: none;
+}
+
+.shell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    220px circle at var(--gx, 50%) var(--gy, 50%),
+    rgba(224, 189, 108, 0.06),
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+.scan {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 160px;
+  top: -160px;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    rgba(224, 189, 108, 0.05) 45%,
+    rgba(224, 189, 108, 0.08) 50%,
+    rgba(224, 189, 108, 0.05) 55%,
+    transparent
+  );
+  animation: scan 6s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes scan {
+  to {
+    top: 100%;
+  }
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+}
