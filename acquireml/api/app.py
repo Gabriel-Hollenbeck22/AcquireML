@@ -26,6 +26,7 @@ from acquireml.api.schemas import (
     StatusResponse,
     UpdateRequest,
     UpdateResponse,
+    UpdateSettingsRequest,
 )
 from acquireml.session import Session
 
@@ -255,6 +256,15 @@ def reset(sess: Session = Depends(get_session)) -> ResetResponse:
             n_pool=result["n_pool"],
             rounds_cleared=result["rounds_cleared"],
         )
+
+
+@app.patch("/sessions/{name}/settings", response_model=StatusResponse)
+def update_settings(
+    body: UpdateSettingsRequest, sess: Session = Depends(get_session)
+) -> StatusResponse:
+    with sess:
+        result = sess.update_settings(**body.model_dump(exclude_none=True))
+        return StatusResponse(**result)
 
 
 @app.get("/sessions/{name}/export")

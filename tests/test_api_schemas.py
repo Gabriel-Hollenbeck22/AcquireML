@@ -12,6 +12,7 @@ from acquireml.api.schemas import (
     StatusResponse,
     UpdateRequest,
     UpdateResponse,
+    UpdateSettingsRequest,
 )
 
 
@@ -85,3 +86,14 @@ def test_update_response_round_trips():
 def test_reset_response_round_trips():
     r = ResetResponse(n_known=20, n_pool=30, rounds_cleared=2)
     assert r.rounds_cleared == 2
+
+
+def test_update_settings_request_all_fields_optional():
+    body = UpdateSettingsRequest()
+    assert body.patience is None
+    assert body.model_dump(exclude_none=True) == {}
+
+
+def test_update_settings_request_accepts_partial_fields():
+    body = UpdateSettingsRequest(patience=5, cost_per_sample=2.5)
+    assert body.model_dump(exclude_none=True) == {"patience": 5, "cost_per_sample": 2.5}

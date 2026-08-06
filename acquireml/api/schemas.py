@@ -110,3 +110,15 @@ class ResetResponse(BaseModel):
     n_known: int
     n_pool: int
     rounds_cleared: int
+
+
+class UpdateSettingsRequest(BaseModel):
+    """Body for PATCH /sessions/{name}/settings. All fields optional —
+    only provided (non-None) ones are changed."""
+    patience: int | None = None
+    min_delta: float | None = None
+    cost_per_sample: float | None = None
+    diversity_weight: float | None = None
+    model: str | None = None
+    calibrate: bool | None = None
+    calibration_method: str | None = None

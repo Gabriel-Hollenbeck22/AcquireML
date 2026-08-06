@@ -320,3 +320,36 @@ def test_delete_removes_upload_data_dir(client, labeled_csv):
     assert resp.status_code == 204
 
     assert not data_dir.exists()
+
+
+def test_update_settings_changes_patience(client, labeled_csv):
+    _create_session(client, labeled_csv)
+
+    resp = client.patch("/sessions/azm-project/settings", json={"patience": 7})
+    assert resp.status_code == 200
+    assert resp.json()["patience"] == 7
+
+    status = client.get("/sessions/azm-project/status").json()
+    assert status["patience"] == 7
+
+
+def test_update_settings_partial_body_leaves_other_fields(client, labeled_csv):
+    _create_session(client, labeled_csv)
+
+    client.patch("/sessions/azm-project/settings", json={"min_delta": 0.02})
+
+    status = client.get("/sessions/azm-project/status").json()
+    assert status["min_delta"] == 0.02
+    assert status["patience"] == 3  # untouched, still the init() default
+
+
+def test_update_settings_rejects_unknown_model(client, labeled_csv):
+    _create_session(client, labeled_csv)
+
+    resp = client.patch("/sessions/azm-project/settings", json={"model": "not_a_real_model"})
+    assert resp.status_code == 400
+
+
+def test_update_settings_unknown_session_404s(client):
+    resp = client.patch("/sessions/nope/settings", json={"patience": 5})
+    assert resp.status_code == 404
