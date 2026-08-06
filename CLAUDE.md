@@ -45,7 +45,7 @@ paths (`data/...`) will not resolve.
 - `make recommend` — rank new unlabeled strains (edit --input-file first)
 - `make validate`  — holdout test on unseen strains → azm_validation.png
 - `make api`       — run the web UI backend API (dev server, auto-reload)
-- `make test`      — run all tests (221 on main)
+- `make test`      — run all tests (236 on main)
 
 CLI entry point: `acquireml --antibiotic azm --iterations 10` (registered via pyproject.toml).
 
@@ -80,7 +80,7 @@ acquireml/                  Python package
   demo.py                   Synthetic data generator + `acquireml demo --init` zero-setup session
   api/                      FastAPI web UI backend — store.py (session path resolution),
                               schemas.py (Pydantic models), app.py (the FastAPI app + endpoints)
-tests/                      221 tests (test_loader/test_engine/test_recommend/test_validate/
+tests/                      236 tests (test_loader/test_engine/test_recommend/test_validate/
                               test_generic_loader/test_session/test_explain/test_round_report/
                               test_demo/test_api_store/test_api_schemas/test_api_app)
 docs/                       Charts committed for README display (PNGs)
@@ -155,7 +155,7 @@ across many features (matches its multi-gene biology).
 - `main` — Phases 1–3 + holdout validation + real-world engine + stopping criteria +
   cost tracking + batch diversity + round report + VCF support + model selection +
   calibration + demo mode + AZM recall threshold tuning + landing page + full web UI
-  (FastAPI backend + React frontend, all 5 pages). 221 backend tests + 47 frontend
+  (FastAPI backend + React frontend, all 7 pages). 236 backend tests + 82 frontend
   tests. Stable. Pushed to GitHub. Repo is public.
 - All feature branches (`feature/real-world-engine`, `feature/stopping-criteria`,
   `feature/cost-tracking`, `feature/batch-diversity`, `feature/round-report`,
@@ -198,7 +198,11 @@ resolves session names to `~/.acquireml/sessions/<name>.db`
 (auto-discovered, no path ever comes from the client). `schemas.py`
 mirrors `Session`'s existing dict returns as Pydantic models. `app.py` is
 a thin translation layer — no session/model logic lives here. Run with
-`make api` (or `uvicorn acquireml.api.app:app --reload`).
+`make api` (or `uvicorn acquireml.api.app:app --reload`). A later phase added
+`PATCH /sessions/{name}/settings` (body: `UpdateSettingsRequest`, all fields
+optional) so patience/min_delta/cost_per_sample/diversity_weight/model/
+calibration can be edited in place, via the same `Session.update_settings`
+path `session init` uses, applying only the non-None fields sent.
 
 **Web UI frontend** (`frontend/`): React + TypeScript + Vite, talking to
 the backend at `http://localhost:8000`. `src/api/client.ts` is the sole
@@ -211,13 +215,15 @@ needed for the landing page's strict-CSP artifact renderer); the fonts
 loaded are Manrope and IBM Plex Mono only (see the visual-system note
 below on why the landing page's serif face isn't among them). Covers
 the full session
-lifecycle across five pages: `SessionListPage` and `NewSessionPage`
-(create), `SessionLayout` (shared nav shell for the three session-scoped
+lifecycle across seven pages: `SessionListPage` and `NewSessionPage`
+(create), `SessionLayout` (shared nav shell for the five session-scoped
 routes below), `DashboardPage` (status + stopping-warning banner +
 accuracy/cost chart), `RecommendationsPage` (batch table with inline 0/1
-result entry, submits to `/update`), and `HistoryPage` (round table +
-chart + CSV export). Routing is `/`, `/new`, and
-`/sessions/:name[/recommend|/history]` via nested React Router routes.
+result entry, submits to `/update`), `HistoryPage` (round table +
+chart + CSV export), `SettingsPage` (edit + danger zone), and
+`BudgetPage` (cost/accuracy trend projection). Routing is `/`, `/new`, and
+`/sessions/:name[/recommend|/history|/settings|/budget]` via nested React
+Router routes.
 Charts use Recharts, reading the same CSS custom-property tokens as the
 rest of the UI. A later visual-overhaul pass gave the app a denser,
 motion-forward visual system distinct from the landing page: Manrope is
@@ -229,8 +235,7 @@ glow (via the `useCursorGlow` hook) behind the page content. Within that
 shell, `DashboardPage`'s stat cards animate their numbers in with a
 `useCountUp` hook, and the shared `AccuracyChart` card (used by both
 `DashboardPage` and `HistoryPage`) draws its line in on mount with a
-glow filter and a pulsing ring around the latest data point. 47 frontend
-tests. Run with `npm run dev` from
+glow filter and a pulsing ring around the latest data point. Run with `npm run dev` from
 `frontend/` (needs the backend running too — `make api` in another
 terminal). Test with `npm test` from `frontend/`; type-check with
 `npx tsc --noEmit`. Verified end-to-end against the real backend in a
@@ -243,6 +248,33 @@ fail on the second call; fixed with a `useRef` dedup key guarding the
 fetch, separate from the mount-tracking ref (a plain `cancelled` flag
 isn't enough here, since the phantom StrictMode cleanup would mark the
 one real in-flight request as cancelled before it resolves).
+A later session-management phase (branch `feature/web-ui-session-management`)
+added the remaining two pages plus a global command palette. `SettingsPage`
+pre-fills a form from the session's current status and PATCHes
+`/sessions/{name}/settings` on save with the full current form state (only
+`cost_per_sample` is conditionally omitted, when the field is left blank, so
+it's excluded rather than coerced to 0 — the backend's `UpdateSettingsRequest`
+still treats every field as optional and only applies what it receives), and
+carries a "Danger zone" with `Reset session` and `Delete session` buttons,
+each gated behind a native `window.confirm` before it calls its endpoint —
+cancelling the dialog leaves the session untouched. `SessionListPage` became
+a sortable portfolio view: every session renders as a card with four stats
+(round/known/pool/accuracy), a `Sort by` dropdown (name/round/accuracy/known,
+via the pure comparator in `sessionSort.ts`, where a null accuracy always
+sorts last), and a `highAccuracy` CSS-module class that highlights the
+accuracy stat once a session clears a threshold. `BudgetPage` — its nav link
+rendered only when the session has cost tracking enabled — fits an
+ordinary-least-squares trend of accuracy against cumulative cost
+(`costProjection.ts`'s `fitLinearTrend`/`projectCostForTarget`) and, given a
+target accuracy typed into an input, projects the additional spend needed
+(clamped to never go negative), falling back to an explanatory message when
+there are fewer than two rounds with both accuracy and cost recorded or the
+trend isn't increasing. A Cmd+K/Ctrl+K `CommandPalette` (opened via a global
+keydown listener plus a "⌘K" hint chip rendered by `AppShell` on every route,
+filtered by `commandFilter.ts`) jumps to any session or, from inside one, any
+of its five sub-pages, with arrow keys to move the selection, Enter to
+navigate, and Escape or a backdrop click to close it without navigating.
+82 frontend tests.
 
 ## Feature Roadmap
 
@@ -268,16 +300,18 @@ scoped) would need fresh ideas from Gabe — see "Current Status & What's Next" 
 
 ## Current Status & What's Next
 
-221 backend tests + 47 frontend tests passing on main. Repo is public. All work
+236 backend tests + 82 frontend tests passing on main. Repo is public. All work
 pushed to GitHub.
 
 **Technical:** Full original feature roadmap complete (stopping criteria → cost
 tracking → batch diversity → round report → VCF support → model selection →
 calibration → demo mode), plus AZM recall threshold tuning, a landing page
 (`docs/index.html`), and a complete web UI — FastAPI backend (`acquireml/api/`)
-and a 5-page React frontend (`frontend/`) covering the full session lifecycle
-(create → recommend → submit results → dashboard/history → CSV export),
-verified end-to-end in a real browser against real servers. No specific next
+and a 7-page React frontend (`frontend/`) covering the full session lifecycle
+(create → recommend → submit results → dashboard/history → CSV export) plus
+session settings editing, a sortable portfolio session list, a cost/accuracy
+budget projection page, and a Cmd+K command palette, verified end-to-end in a
+real browser against real servers. No specific next
 feature queued — check with Gabe for what's next (candidates: README refresh to
 showcase the web UI, or moving into outreach now that the repo is public and has
 a polished demo surface).
