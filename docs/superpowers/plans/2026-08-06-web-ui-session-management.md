@@ -1692,7 +1692,7 @@ Add `import BudgetPage from "./pages/BudgetPage";` and, inside the `/sessions/:n
 - [ ] **Step 10: Run the full frontend suite and typecheck**
 
 Run: `cd frontend && npm test -- --run`
-Expected: previous count (from Task 5) + 6 (`costProjection.test.ts`) + 3 (`BudgetPage.test.tsx`) = 9 new. Verify against the actual reported total.
+Expected: previous count (65, from Task 5) + 5 (`costProjection.test.ts` — its Step 1 code contains 5 `it(...)` blocks, not 6 as earlier drafts of this plan estimated) + 3 (`BudgetPage.test.tsx`) = `73 passed (73)`. Verify against the actual reported total.
 
 Run: `npx tsc --noEmit`
 Expected: no errors.
