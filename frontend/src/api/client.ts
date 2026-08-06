@@ -97,6 +97,22 @@ export interface UpdateResponse {
   stop_reason: string;
 }
 
+export interface ResetResponse {
+  n_known: number;
+  n_pool: number;
+  rounds_cleared: number;
+}
+
+export interface UpdateSettingsInput {
+  patience?: number;
+  minDelta?: number;
+  costPerSample?: number;
+  diversityWeight?: number;
+  model?: string;
+  calibrate?: boolean;
+  calibrationMethod?: string;
+}
+
 async function parseErrorDetail(response: Response): Promise<string> {
   try {
     const body = await response.json();
@@ -195,4 +211,47 @@ export async function exportHistory(name: string): Promise<Blob> {
     throw new Error(await parseErrorDetail(response));
   }
   return response.blob();
+}
+
+export async function updateSettings(
+  name: string,
+  input: UpdateSettingsInput
+): Promise<StatusResponse> {
+  const body: Record<string, string | number | boolean> = {};
+  if (input.patience !== undefined) body.patience = input.patience;
+  if (input.minDelta !== undefined) body.min_delta = input.minDelta;
+  if (input.costPerSample !== undefined) body.cost_per_sample = input.costPerSample;
+  if (input.diversityWeight !== undefined) body.diversity_weight = input.diversityWeight;
+  if (input.model !== undefined) body.model = input.model;
+  if (input.calibrate !== undefined) body.calibrate = input.calibrate;
+  if (input.calibrationMethod !== undefined) body.calibration_method = input.calibrationMethod;
+
+  const response = await fetch(`${API_BASE_URL}/sessions/${encodeURIComponent(name)}/settings`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response));
+  }
+  return response.json();
+}
+
+export async function resetSession(name: string): Promise<ResetResponse> {
+  const response = await fetch(`${API_BASE_URL}/sessions/${encodeURIComponent(name)}/reset`, {
+    method: "POST",
+  });
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response));
+  }
+  return response.json();
+}
+
+export async function deleteSession(name: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/sessions/${encodeURIComponent(name)}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response));
+  }
 }

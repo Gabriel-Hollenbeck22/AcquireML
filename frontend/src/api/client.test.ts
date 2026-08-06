@@ -1,12 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  API_BASE_URL,
   createSession,
+  deleteSession,
   exportHistory,
   getHistory,
   getRecommendations,
   getStatus,
   listSessions,
+  resetSession,
   submitResults,
+  updateSettings,
 } from "./client";
 
 describe("listSessions", () => {
@@ -295,5 +299,90 @@ describe("exportHistory", () => {
 
     expect(fetch).toHaveBeenCalledWith("http://localhost:8000/sessions/azm-project/export");
     expect(result).toBe(mockBlob);
+  });
+});
+
+describe("updateSettings", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("sends only the provided fields as snake_case JSON", async () => {
+    const mockResponse = { name: "proj", current_round: 1, n_known: 10, n_pool: 5, n_pending: 0, latest_accuracy: 0.9, patience: 7, min_delta: 0.005, cost_per_sample: null, total_cost: null, diversity_weight: 0, model: "rf", calibrate: false, calibration_method: "sigmoid", should_stop: false, stop_reason: "", created_at: null };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => mockResponse,
+    }));
+
+    const result = await updateSettings("proj", { patience: 7 });
+
+    expect(fetch).toHaveBeenCalledWith(
+      `${API_BASE_URL}/sessions/proj/settings`,
+      expect.objectContaining({
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ patience: 7 }),
+      })
+    );
+    expect(result).toEqual(mockResponse);
+  });
+
+  it("throws with the parsed error detail on failure", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: false,
+      status: 400,
+      json: async () => ({ detail: "Unknown model 'bad'." }),
+    }));
+
+    await expect(updateSettings("proj", { model: "bad" })).rejects.toThrow("Unknown model 'bad'.");
+  });
+});
+
+describe("resetSession", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("posts to the reset endpoint and returns the parsed response", async () => {
+    const mockResponse = { n_known: 20, n_pool: 30, rounds_cleared: 2 };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => mockResponse,
+    }));
+
+    const result = await resetSession("proj");
+
+    expect(fetch).toHaveBeenCalledWith(
+      `${API_BASE_URL}/sessions/proj/reset`,
+      expect.objectContaining({ method: "POST" })
+    );
+    expect(result).toEqual(mockResponse);
+  });
+});
+
+describe("deleteSession", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("sends a DELETE request and resolves without parsing a body", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true }));
+
+    await expect(deleteSession("proj")).resolves.toBeUndefined();
+
+    expect(fetch).toHaveBeenCalledWith(
+      `${API_BASE_URL}/sessions/proj`,
+      expect.objectContaining({ method: "DELETE" })
+    );
+  });
+
+  it("throws with the parsed error detail on failure", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      json: async () => ({ detail: "No session named 'proj'." }),
+    }));
+
+    await expect(deleteSession("proj")).rejects.toThrow("No session named 'proj'.");
   });
 });
