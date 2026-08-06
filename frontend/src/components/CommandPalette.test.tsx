@@ -81,4 +81,39 @@ describe("CommandPalette", () => {
 
     expect(onClose).toHaveBeenCalled();
   });
+
+  it("does not show a Budget command for a session without cost tracking", async () => {
+    vi.spyOn(client, "listSessions").mockResolvedValue([]);
+    vi.spyOn(client, "getStatus").mockResolvedValue({
+      name: "azm-project", current_round: 1, n_known: 10, n_pool: 5, n_pending: 0,
+      latest_accuracy: 0.9, patience: 3, min_delta: 0.005, cost_per_sample: null,
+      total_cost: null, diversity_weight: 0, model: "rf", calibrate: false,
+      calibration_method: "sigmoid", should_stop: false, stop_reason: "", created_at: null,
+    });
+    render(
+      <MemoryRouter initialEntries={["/sessions/azm-project"]}>
+        <CommandPalette open={true} onClose={vi.fn()} />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText("Dashboard")).toBeInTheDocument();
+    expect(screen.queryByText("Budget")).not.toBeInTheDocument();
+  });
+
+  it("shows a Budget command for a session with cost tracking", async () => {
+    vi.spyOn(client, "listSessions").mockResolvedValue([]);
+    vi.spyOn(client, "getStatus").mockResolvedValue({
+      name: "azm-project", current_round: 1, n_known: 10, n_pool: 5, n_pending: 0,
+      latest_accuracy: 0.9, patience: 3, min_delta: 0.005, cost_per_sample: 12.5,
+      total_cost: 125, diversity_weight: 0, model: "rf", calibrate: false,
+      calibration_method: "sigmoid", should_stop: false, stop_reason: "", created_at: null,
+    });
+    render(
+      <MemoryRouter initialEntries={["/sessions/azm-project"]}>
+        <CommandPalette open={true} onClose={vi.fn()} />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText("Budget")).toBeInTheDocument();
+  });
 });

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { listSessions } from "../api/client";
+import { getStatus, listSessions } from "../api/client";
 import { filterCommands, type Command } from "./commandFilter";
 import styles from "./CommandPalette.module.css";
 
@@ -15,6 +15,7 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
   const [query, setQuery] = useState("");
   const [sessionNames, setSessionNames] = useState<string[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [currentSessionCostTracked, setCurrentSessionCostTracked] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -29,6 +30,20 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
     const match = location.pathname.match(/^\/sessions\/([^/]+)/);
     return match ? match[1] : null;
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (!open || !currentSessionName) {
+      setCurrentSessionCostTracked(false);
+      return;
+    }
+    getStatus(currentSessionName)
+      .then((status) => {
+        setCurrentSessionCostTracked(
+          status?.cost_per_sample !== null && status?.cost_per_sample !== undefined
+        );
+      })
+      .catch(() => setCurrentSessionCostTracked(false));
+  }, [open, currentSessionName]);
 
   const commands = useMemo<Command[]>(() => {
     const go = (path: string) => () => {
@@ -48,12 +63,14 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
         { id: "cur-dashboard", label: "Dashboard", action: go(`/sessions/${currentSessionName}`) },
         { id: "cur-recommend", label: "Recommendations", action: go(`/sessions/${currentSessionName}/recommend`) },
         { id: "cur-history", label: "History", action: go(`/sessions/${currentSessionName}/history`) },
-        { id: "cur-settings", label: "Settings", action: go(`/sessions/${currentSessionName}/settings`) },
-        { id: "cur-budget", label: "Budget", action: go(`/sessions/${currentSessionName}/budget`) }
+        { id: "cur-settings", label: "Settings", action: go(`/sessions/${currentSessionName}/settings`) }
       );
+      if (currentSessionCostTracked) {
+        list.push({ id: "cur-budget", label: "Budget", action: go(`/sessions/${currentSessionName}/budget`) });
+      }
     }
     return list;
-  }, [sessionNames, currentSessionName, navigate, onClose]);
+  }, [sessionNames, currentSessionName, currentSessionCostTracked, navigate, onClose]);
 
   const filtered = filterCommands(commands, query);
 
