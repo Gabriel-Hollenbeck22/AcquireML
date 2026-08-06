@@ -515,7 +515,7 @@ Expected: all tests in the file pass, including the 6 new ones above.
 - [ ] **Step 4: Run the full frontend suite and typecheck**
 
 Run: `cd frontend && npm test -- --run`
-Expected: `53 passed (53)` (47 + 6 new).
+Expected: `52 passed (52)` (47 + 5 new — the brief's Step 2 code contains 5 `it(...)` blocks, not 6; verify against the actual count in the test file rather than this number if anything looks off).
 
 Run: `npx tsc --noEmit`
 Expected: no errors.
@@ -1038,7 +1038,7 @@ export default function App() {
 - [ ] **Step 11: Run the full frontend suite and typecheck**
 
 Run: `cd frontend && npm test -- --run`
-Expected: `60 passed (60)` — 53 from Task 3's end state, plus exactly the new `it(...)` blocks this task added: 2 in Step 1 (`SessionLayout`'s new nav tests) + 5 in Step 8 (`SettingsPage.test.tsx`). Verify the actual reported number matches 60 rather than trusting this arithmetic blindly — if it doesn't, something in the diff added or removed a test this plan didn't account for, and that's worth investigating before moving on.
+Expected: `59 passed (59)` — 52 from Task 3's actual end state (corrected from this plan's original miscounted "53" — Task 3's brief had 5 new tests, not 6), plus exactly the new `it(...)` blocks this task added: 2 in Step 1 (`SessionLayout`'s new nav tests) + 5 in Step 8 (`SettingsPage.test.tsx`). Verify the actual reported number matches 59 rather than trusting this arithmetic blindly — if it doesn't, something in the diff added or removed a test this plan didn't account for, and that's worth investigating before moving on.
 
 Run: `npx tsc --noEmit`
 Expected: no errors.
@@ -1292,7 +1292,7 @@ Expected: all pass (existing tests updated + 1 new).
 - [ ] **Step 9: Run the full frontend suite and typecheck**
 
 Run: `cd frontend && npm test -- --run`
-Expected: previous count (60, from Task 4) + 5 (`sessionSort.test.ts`) + 1 (`SessionListPage`'s new sort test) = `66 passed (66)`. As in Task 4, verify this against the actual reported number rather than trusting the arithmetic blindly — the exact baseline depends on Task 4's real final count.
+Expected: previous count (59, from Task 4) + 5 (`sessionSort.test.ts`) + 1 (`SessionListPage`'s new sort test) = `65 passed (65)`. As in Task 4, verify this against the actual reported number rather than trusting the arithmetic blindly — the exact baseline depends on Task 4's real final count.
 
 Run: `npx tsc --noEmit`
 Expected: no errors.
