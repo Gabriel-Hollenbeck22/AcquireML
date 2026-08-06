@@ -201,8 +201,8 @@ a thin translation layer — no session/model logic lives here. Run with
 `make api` (or `uvicorn acquireml.api.app:app --reload`). A later phase added
 `PATCH /sessions/{name}/settings` (body: `UpdateSettingsRequest`, all fields
 optional) so patience/min_delta/cost_per_sample/diversity_weight/model/
-calibration can be edited in place, via the same `Session.update_settings`
-path `session init` uses, applying only the non-None fields sent.
+calibration can be edited in place via `Session.update_settings()` (which has
+its own independent validation logic), applying only the non-None fields sent.
 
 **Web UI frontend** (`frontend/`): React + TypeScript + Vite, talking to
 the backend at `http://localhost:8000`. `src/api/client.ts` is the sole
