@@ -7,6 +7,7 @@ import DashboardPage from "./pages/DashboardPage";
 import RecommendationsPage from "./pages/RecommendationsPage";
 import HistoryPage from "./pages/HistoryPage";
 import SettingsPage from "./pages/SettingsPage";
+import BudgetPage from "./pages/BudgetPage";
 
 export default function App() {
   return (
@@ -20,6 +21,7 @@ export default function App() {
             <Route path="recommend" element={<RecommendationsPage />} />
             <Route path="history" element={<HistoryPage />} />
             <Route path="settings" element={<SettingsPage />} />
+            <Route path="budget" element={<BudgetPage />} />
           </Route>
         </Routes>
       </AppShell>
