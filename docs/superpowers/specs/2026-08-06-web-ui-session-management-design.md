@@ -251,12 +251,20 @@ fetched by Dashboard/History) — same data, new analysis.
   rounds) are both handled as explicit empty/informational states rather
   than a bad regression — a 1-2 point fit is not a trend, and the page
   says so rather than projecting from noise.
-- Reuses `AccuracyChart`'s existing cost-axis support (it already renders
-  a second `cost` line when `historyHasCost` is true) as the visual
-  anchor, with the projected point plotted as an extension — this needs
-  `AccuracyChart` to optionally accept a projected point to render past
-  the real data, which is a small, additive prop change
-  (`projectedPoint?: { cost: number; accuracy: number }`), not a rewrite.
+- Renders its own small, standalone SVG visualization (not a reuse of
+  `AccuracyChart`) — a simple accuracy-vs-cost scatter of the real history
+  points, a fitted trend line through them, and the projected point marked
+  distinctly (e.g. a dashed line continuing to it, different marker
+  style). Deliberately not extended from the shared `AccuracyChart`
+  component: that component is already reviewed and in production use on
+  Dashboard/History, and threading a projection-specific
+  `projectedPoint` prop through it for a single consumer would add
+  surface area (and regression risk) to shared code for a page-specific
+  need. A plain inline SVG (in the ~40-80 line range, similar scale to
+  `AccuracyChart` itself) keeps the projection visualization fully
+  contained to `BudgetPage` and easy to unit-test for its data-to-geometry
+  mapping the same way `chartData.ts` is tested — without touching
+  `AccuracyChart.tsx` at all.
 
 New file: `frontend/src/lib/costProjection.ts` — the pure regression/
 projection math, tested independently of any component (matching
