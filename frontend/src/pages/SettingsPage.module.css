@@ -1,0 +1,108 @@
+.loading,
+.error {
+  font-family: var(--font-mono);
+  color: var(--ink-soft);
+}
+
+.error {
+  color: var(--red-data);
+}
+
+.form {
+  max-width: 480px;
+}
+
+.field {
+  margin-bottom: 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.field label {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.field input[type="number"],
+.field select {
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  padding: 0.6rem 0.8rem;
+  border-radius: 3px;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+}
+
+.field input[type="checkbox"] {
+  margin-right: 0.4rem;
+}
+
+.submit {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  color: var(--paper);
+  background: var(--accent-deep);
+  border: none;
+  padding: 0.75rem 1.4rem;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.submit:hover {
+  background: var(--accent);
+}
+
+.submit:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.saveMessage {
+  color: var(--accent-deep);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  margin-top: 1rem;
+}
+
+.dangerZone {
+  max-width: 480px;
+  margin-top: 3rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--red-data);
+}
+
+.dangerZone h3 {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--red-data);
+  margin-bottom: 1rem;
+}
+
+.dangerButton {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--red-data);
+  background: transparent;
+  border: 1px solid var(--red-data);
+  padding: 0.5rem 0.9rem;
+  border-radius: 3px;
+  cursor: pointer;
+  margin-right: 0.8rem;
+}
+
+.dangerButton:hover {
+  background: var(--red-data);
+  color: var(--paper);
+}
+
+.dangerButton:disabled {
+  opacity: 0.6;
+  cursor: default;
+}

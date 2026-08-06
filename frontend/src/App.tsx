@@ -6,6 +6,7 @@ import SessionLayout from "./components/SessionLayout";
 import DashboardPage from "./pages/DashboardPage";
 import RecommendationsPage from "./pages/RecommendationsPage";
 import HistoryPage from "./pages/HistoryPage";
+import SettingsPage from "./pages/SettingsPage";
 
 export default function App() {
   return (
@@ -18,6 +19,7 @@ export default function App() {
             <Route index element={<DashboardPage />} />
             <Route path="recommend" element={<RecommendationsPage />} />
             <Route path="history" element={<HistoryPage />} />
+            <Route path="settings" element={<SettingsPage />} />
           </Route>
         </Routes>
       </AppShell>
