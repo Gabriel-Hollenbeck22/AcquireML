@@ -50,11 +50,69 @@
   color: var(--ink);
 }
 
-.sessionMeta {
+.sortRow {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1.2rem;
+}
+
+.sortRow label {
   font-family: var(--font-mono);
   font-size: 0.8rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
   color: var(--ink-faint);
-  margin-top: 0.3rem;
+}
+
+.sortRow select {
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  padding: 0.5rem 0.7rem;
+  border-radius: 3px;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+}
+
+.statRow {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.6rem;
+}
+
+.stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0.6rem 0.7rem;
+  border-radius: 6px;
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+}
+
+.statValue {
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: var(--ink);
+}
+
+.statLabel {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-top: 0.15rem;
+}
+
+.highAccuracy {
+  color: var(--accent);
+  background: rgba(224, 189, 108, 0.12);
+  border-radius: 4px;
+  padding: 0 4px;
+  width: fit-content;
 }
 
 .empty,

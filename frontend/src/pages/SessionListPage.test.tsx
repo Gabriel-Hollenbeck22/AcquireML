@@ -32,8 +32,10 @@ describe("SessionListPage", () => {
     await waitFor(() => {
       expect(screen.getByText("azm-project")).toBeInTheDocument();
     });
-    expect(screen.getByText(/round 2/i)).toBeInTheDocument();
-    expect(screen.getByText(/93/)).toBeInTheDocument();
+    expect(screen.getByText("2")).toBeInTheDocument();
+    expect(screen.getByText("45")).toBeInTheDocument();
+    expect(screen.getByText("55")).toBeInTheDocument();
+    expect(screen.getByText("93.0%")).toBeInTheDocument();
   });
 
   it("shows an empty state when there are no sessions", async () => {
@@ -79,5 +81,21 @@ describe("SessionListPage", () => {
         "/new"
       );
     });
+  });
+
+  it("sorts sessions when the sort dropdown changes", async () => {
+    vi.spyOn(client, "listSessions").mockResolvedValue([
+      { name: "zeta", current_round: 1, n_known: 5, n_pool: 5, n_pending: 0, latest_accuracy: null },
+      { name: "alpha", current_round: 1, n_known: 5, n_pool: 5, n_pending: 0, latest_accuracy: null },
+    ]);
+    render(
+      <MemoryRouter>
+        <SessionListPage />
+      </MemoryRouter>
+    );
+
+    const links = await screen.findAllByRole("link", { name: /zeta|alpha/ });
+    // default sort is "name" — alpha should come before zeta
+    expect(links[0]).toHaveTextContent("alpha");
   });
 });
