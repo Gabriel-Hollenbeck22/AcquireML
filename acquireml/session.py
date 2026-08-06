@@ -340,6 +340,52 @@ class Session:
             "calibration_method": calibration_method,
         }
 
+    def update_settings(
+        self,
+        patience: Optional[int] = None,
+        min_delta: Optional[float] = None,
+        cost_per_sample: Optional[float] = None,
+        diversity_weight: Optional[float] = None,
+        model: Optional[str] = None,
+        calibrate: Optional[bool] = None,
+        calibration_method: Optional[str] = None,
+    ) -> dict:
+        """Update one or more of a session's tunable settings in place.
+
+        Only provided (non-None) fields are changed. Takes effect starting
+        with the next `recommend`/`update` round — does not retroactively
+        alter past rounds' history. Returns the full updated settings dict
+        (same shape as `status()`'s return).
+
+        Validates before applying anything: an invalid `model` or
+        `calibration_method` raises before any field (including valid ones
+        passed in the same call) is written to meta.
+        """
+        if model is not None and model not in MODEL_CHOICES:
+            raise ValueError(
+                f"Unknown model {model!r}. Choose one of: {', '.join(MODEL_CHOICES)}"
+            )
+        if calibration_method is not None and calibration_method not in CALIBRATION_METHODS:
+            raise ValueError(
+                f"Unknown calibration method {calibration_method!r}. "
+                f"Choose one of: {', '.join(CALIBRATION_METHODS)}"
+            )
+        if patience is not None:
+            self._set_meta("patience", str(patience))
+        if min_delta is not None:
+            self._set_meta("min_delta", str(min_delta))
+        if cost_per_sample is not None:
+            self._set_meta("cost_per_sample", str(cost_per_sample))
+        if diversity_weight is not None:
+            self._set_meta("diversity_weight", str(diversity_weight))
+        if model is not None:
+            self._set_meta("model", model)
+        if calibrate is not None:
+            self._set_meta("calibrate", "true" if calibrate else "false")
+        if calibration_method is not None:
+            self._set_meta("calibration_method", calibration_method)
+        return self.status()
+
     def recommend(
         self,
         batch_size: int = 10,

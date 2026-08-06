@@ -674,6 +674,113 @@ def test_reset_zero_rounds_returns_zero_cleared(tmp_path, labeled_csv, pool_csv)
     sess.close()
 
 
+# ── update_settings ──────────────────────────────────────────────────────────
+
+def test_update_settings_changes_patience(tmp_path, labeled_csv):
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    sess.init(labeled_csv, label_col="outcome", patience=3)
+
+    result = sess.update_settings(patience=5)
+
+    assert result["patience"] == 5
+    assert sess.status()["patience"] == 5
+    sess.close()
+
+
+def test_update_settings_changes_multiple_fields_at_once(tmp_path, labeled_csv):
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    sess.init(labeled_csv, label_col="outcome")
+
+    result = sess.update_settings(min_delta=0.01, cost_per_sample=2.5, diversity_weight=0.3)
+
+    assert result["min_delta"] == 0.01
+    assert result["cost_per_sample"] == 2.5
+    assert result["diversity_weight"] == 0.3
+    sess.close()
+
+
+def test_update_settings_leaves_unspecified_fields_unchanged(tmp_path, labeled_csv):
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    sess.init(labeled_csv, label_col="outcome", patience=3, min_delta=0.005)
+
+    sess.update_settings(patience=7)
+
+    # min_delta wasn't in this call, so it should still be the init() value
+    assert sess.status()["min_delta"] == 0.005
+    sess.close()
+
+
+def test_update_settings_changes_model(tmp_path, labeled_csv):
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    sess.init(labeled_csv, label_col="outcome", model="rf")
+
+    result = sess.update_settings(model="gbm")
+
+    assert result["model"] == "gbm"
+    sess.close()
+
+
+def test_update_settings_rejects_unknown_model(tmp_path, labeled_csv):
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    sess.init(labeled_csv, label_col="outcome")
+
+    with pytest.raises(ValueError, match="Unknown model"):
+        sess.update_settings(model="not_a_real_model")
+    sess.close()
+
+
+def test_update_settings_rejects_unknown_calibration_method(tmp_path, labeled_csv):
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    sess.init(labeled_csv, label_col="outcome")
+
+    with pytest.raises(ValueError, match="Unknown calibration method"):
+        sess.update_settings(calibration_method="platt")
+    sess.close()
+
+
+def test_update_settings_rejects_invalid_before_applying_valid(tmp_path, labeled_csv):
+    """A call mixing a valid and an invalid field should apply nothing —
+    not partially update patience and then raise on the bad model name."""
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    sess.init(labeled_csv, label_col="outcome", patience=3)
+
+    with pytest.raises(ValueError, match="Unknown model"):
+        sess.update_settings(patience=99, model="not_a_real_model")
+
+    assert sess.status()["patience"] == 3
+    sess.close()
+
+
+def test_update_settings_changes_calibrate_flag(tmp_path, labeled_csv):
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    sess.init(labeled_csv, label_col="outcome", calibrate=False)
+
+    result = sess.update_settings(calibrate=True)
+
+    assert result["calibrate"] is True
+    sess.close()
+
+
+def test_update_settings_no_args_is_a_noop(tmp_path, labeled_csv):
+    """Calling with no arguments changes nothing and doesn't raise."""
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    sess.init(labeled_csv, label_col="outcome", patience=3)
+
+    result = sess.update_settings()
+
+    assert result["patience"] == 3
+    sess.close()
+
+
 # ── export ────────────────────────────────────────────────────────────────────
 
 def test_export_writes_csv(tmp_path, labeled_csv, pool_csv):
