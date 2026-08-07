@@ -62,42 +62,45 @@ export default function SessionListPage() {
         <p className={styles.empty}>No sessions yet — create one to get started.</p>
       )}
 
-      {state.status === "loaded" &&
-        sortSessions(state.sessions, sortBy).map((session) => (
-          <Link
-            key={session.name}
-            to={`/sessions/${session.name}`}
-            className={styles.sessionCard}
-          >
-            <div className={styles.sessionName}>{session.name}</div>
-            <div className={styles.statRow}>
-              <div className={styles.stat}>
-                <div className={styles.statValue}>{session.current_round}</div>
-                <div className={styles.statLabel}>Round</div>
-              </div>
-              <div className={styles.stat}>
-                <div className={styles.statValue}>{session.n_known}</div>
-                <div className={styles.statLabel}>Known</div>
-              </div>
-              <div className={styles.stat}>
-                <div className={styles.statValue}>{session.n_pool}</div>
-                <div className={styles.statLabel}>Pool</div>
-              </div>
-              <div className={styles.stat}>
-                <div
-                  className={
-                    session.latest_accuracy !== null && session.latest_accuracy >= 0.9
-                      ? `${styles.statValue} ${styles.highAccuracy}`
-                      : styles.statValue
-                  }
-                >
-                  {session.latest_accuracy !== null ? `${(session.latest_accuracy * 100).toFixed(1)}%` : "—"}
+      {state.status === "loaded" && state.sessions.length > 0 && (
+        <div className={styles.cardGrid}>
+          {sortSessions(state.sessions, sortBy).map((session) => (
+            <Link
+              key={session.name}
+              to={`/sessions/${session.name}`}
+              className={styles.sessionCard}
+            >
+              <div className={styles.sessionName}>{session.name}</div>
+              <div className={styles.statRow}>
+                <div className={styles.stat}>
+                  <div className={styles.statValue}>{session.current_round}</div>
+                  <div className={styles.statLabel}>Round</div>
                 </div>
-                <div className={styles.statLabel}>Accuracy</div>
+                <div className={styles.stat}>
+                  <div className={styles.statValue}>{session.n_known}</div>
+                  <div className={styles.statLabel}>Known</div>
+                </div>
+                <div className={styles.stat}>
+                  <div className={styles.statValue}>{session.n_pool}</div>
+                  <div className={styles.statLabel}>Pool</div>
+                </div>
+                <div className={styles.stat}>
+                  <div
+                    className={
+                      session.latest_accuracy !== null && session.latest_accuracy >= 0.9
+                        ? `${styles.statValue} ${styles.highAccuracy}`
+                        : styles.statValue
+                    }
+                  >
+                    {session.latest_accuracy !== null ? `${(session.latest_accuracy * 100).toFixed(1)}%` : "—"}
+                  </div>
+                  <div className={styles.statLabel}>Accuracy</div>
+                </div>
               </div>
-            </div>
-          </Link>
-        ))}
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

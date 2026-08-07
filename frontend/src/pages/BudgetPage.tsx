@@ -80,7 +80,13 @@ export default function BudgetPage() {
         </p>
       ) : (
         <>
-          <svg viewBox="0 0 400 200" width="100%" height="200" className={styles.chart}>
+          <svg
+            viewBox="0 0 400 200"
+            width="100%"
+            height="260"
+            preserveAspectRatio="none"
+            className={styles.chart}
+          >
             <BudgetChartBody points={points} trend={trend} currentCost={currentCost} projectedCost={projected} targetAccuracy={parsedTarget} />
           </svg>
 

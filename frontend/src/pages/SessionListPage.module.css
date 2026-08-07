@@ -1,7 +1,13 @@
 .container {
-  max-width: 720px;
+  max-width: 1320px;
   margin: 0 auto;
-  padding: 3rem 2rem;
+  padding: 3rem clamp(2rem, 4vw, 4rem);
+}
+
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 1rem;
 }
 
 .header {
@@ -28,7 +34,6 @@
 .sessionCard {
   display: block;
   padding: 1.2rem 1.4rem;
-  margin-bottom: 0.8rem;
   background: var(--paper-raised);
   border: 1px solid var(--line);
   border-radius: 8px;
