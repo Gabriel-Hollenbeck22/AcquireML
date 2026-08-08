@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as client from "../api/client";
@@ -51,6 +51,25 @@ describe("BudgetPage", () => {
       expect(screen.getByText(/spent so far/i)).toBeInTheDocument();
     });
     expect(await screen.findByText(/projected additional spend/i)).toBeInTheDocument();
+  });
+
+  it("defaults the target-accuracy input to a whole-number percentage and recomputes the projection when it changes", async () => {
+    vi.spyOn(client, "getStatus").mockResolvedValue(sampleStatus);
+    vi.spyOn(client, "getHistory").mockResolvedValue([
+      { round_number: 1, n_known: 25, accuracy: 0.7, round_cost: 10, cumulative_cost: 10, created_at: "2026-01-01" },
+      { round_number: 2, n_known: 35, accuracy: 0.8, round_cost: 10, cumulative_cost: 20, created_at: "2026-01-02" },
+      { round_number: 3, n_known: 45, accuracy: 0.85, round_cost: 10, cumulative_cost: 30, created_at: "2026-01-03" },
+    ]);
+
+    renderAtSession("azm-project");
+
+    const input = await screen.findByLabelText(/target accuracy/i);
+    expect(input).toHaveValue(95);
+    expect(await screen.findByText(/reach 95%/i)).toBeInTheDocument();
+
+    fireEvent.change(input, { target: { value: "90" } });
+
+    expect(await screen.findByText(/reach 90%/i)).toBeInTheDocument();
   });
 
   it("shows an error message when a request fails", async () => {

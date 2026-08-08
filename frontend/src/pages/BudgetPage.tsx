@@ -1,7 +1,17 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { getHistory, getStatus, type HistoryRow, type StatusResponse } from "../api/client";
 import { fitLinearTrend, projectCostForTarget, type CostPoint } from "./costProjection";
+import { toBudgetChartData } from "./budgetChartData";
 import styles from "./BudgetPage.module.css";
 
 type LoadState =
@@ -20,7 +30,7 @@ function historyToCostPoints(history: HistoryRow[]): CostPoint[] {
 export default function BudgetPage() {
   const { name } = useParams<{ name: string }>();
   const [state, setState] = useState<LoadState>({ status: "loading" });
-  const [targetAccuracy, setTargetAccuracy] = useState("0.95");
+  const [targetPercent, setTargetPercent] = useState("95");
 
   useEffect(() => {
     if (!name) return;
@@ -43,17 +53,13 @@ export default function BudgetPage() {
   const points = historyToCostPoints(state.history);
   const trend = fitLinearTrend(points);
   const currentCost = state.sessionStatus.total_cost ?? 0;
-  const parsedTarget = Number(targetAccuracy);
+  const parsedTarget = Number(targetPercent) / 100;
   const projected =
     trend !== null && !Number.isNaN(parsedTarget)
       ? projectCostForTarget(trend, currentCost, parsedTarget)
       : null;
-
-  function handleSubmit(event: FormEvent) {
-    event.preventDefault();
-    // state derives targetAccuracy reactively — nothing to do beyond
-    // preventing the native form submit/page reload.
-  }
+  const projectedTargetCost = projected !== null ? currentCost + projected : null;
+  const chartData = toBudgetChartData(points, projectedTargetCost, parsedTarget);
 
   return (
     <div>
@@ -80,89 +86,119 @@ export default function BudgetPage() {
         </p>
       ) : (
         <>
-          <svg
-            viewBox="0 0 400 200"
-            width="100%"
-            height="260"
-            preserveAspectRatio="none"
-            className={styles.chart}
-          >
-            <BudgetChartBody points={points} trend={trend} currentCost={currentCost} projectedCost={projected} targetAccuracy={parsedTarget} />
-          </svg>
+          <div className={styles.chartCard}>
+            <span className="bracket bracket-tl" />
+            <span className="bracket bracket-tr" />
+            <span className="bracket bracket-bl" />
+            <span className="bracket bracket-br" />
+            <div className={styles.chartHead}>
+              <h4>Accuracy vs. cumulative cost</h4>
+              <div className={styles.chartLegend}>
+                <span className={styles.legendActual}>● actual</span>
+                <span className={styles.legendProjected}>┄ projected</span>
+              </div>
+            </div>
+            <ResponsiveContainer width="100%" height={280}>
+              <LineChart data={chartData} margin={{ top: 8, right: 24, bottom: 8, left: 8 }}>
+                <CartesianGrid stroke="var(--line)" strokeDasharray="3 3" />
+                <XAxis
+                  dataKey="cost"
+                  type="number"
+                  domain={[0, "dataMax"]}
+                  stroke="var(--ink-faint)"
+                  tick={{ fill: "var(--ink-faint)", fontSize: 12 }}
+                  tickFormatter={(v: number) => `$${Math.round(v)}`}
+                  label={{
+                    value: "Cumulative cost",
+                    position: "insideBottom",
+                    offset: -6,
+                    fill: "var(--ink-faint)",
+                  }}
+                />
+                <YAxis
+                  domain={[0, 1]}
+                  stroke="var(--ink-faint)"
+                  tick={{ fill: "var(--ink-faint)", fontSize: 12 }}
+                  tickFormatter={(v: number) => `${Math.round(v * 100)}%`}
+                  label={{
+                    value: "Accuracy",
+                    angle: -90,
+                    position: "insideLeft",
+                    fill: "var(--ink-faint)",
+                  }}
+                />
+                <Tooltip
+                  contentStyle={{
+                    background: "var(--paper)",
+                    border: "1px solid var(--accent)",
+                    borderRadius: 6,
+                  }}
+                  labelStyle={{ color: "var(--ink)" }}
+                  labelFormatter={(v: number) => `$${v.toFixed(2)}`}
+                  formatter={(value: number, dataKey: string) => [
+                    `${(value * 100).toFixed(1)}%`,
+                    dataKey === "actual" ? "Accuracy" : "Projected",
+                  ]}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="actual"
+                  stroke="var(--accent)"
+                  strokeWidth={2.5}
+                  dot={{ r: 4, fill: "var(--accent)" }}
+                  activeDot={{ r: 5 }}
+                  name="actual"
+                />
+                <Line
+                  type="monotone"
+                  dataKey="projected"
+                  stroke="var(--brass)"
+                  strokeWidth={2}
+                  strokeDasharray="6 4"
+                  dot={{ r: 4, fill: "var(--brass)" }}
+                  activeDot={{ r: 5 }}
+                  connectNulls
+                  name="projected"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
 
-          <form onSubmit={handleSubmit} className={styles.form}>
-            <label htmlFor="targetAccuracy">Target accuracy</label>
-            <input
-              id="targetAccuracy"
-              type="number"
-              step="0.01"
-              min="0"
-              max="1"
-              value={targetAccuracy}
-              onChange={(e) => setTargetAccuracy(e.target.value)}
-            />
-          </form>
+          <div className={styles.projectionPanel}>
+            <div className={styles.targetField}>
+              <label htmlFor="targetAccuracy">Target accuracy</label>
+              <div className={styles.targetInputWrap}>
+                <input
+                  id="targetAccuracy"
+                  type="number"
+                  step="1"
+                  min="0"
+                  max="100"
+                  value={targetPercent}
+                  onChange={(e) => setTargetPercent(e.target.value)}
+                />
+                <span className={styles.targetSuffix}>%</span>
+              </div>
+            </div>
 
-          {trend !== null && trend.slope <= 0 && (
-            <p className={styles.empty}>
-              Accuracy isn't trending upward with cost yet — projection isn't meaningful
-              until it is.
-            </p>
-          )}
-          {projected !== null && (
-            <p className={styles.projection}>
-              Projected additional spend to reach {(parsedTarget * 100).toFixed(0)}%:{" "}
-              <strong>${projected.toFixed(2)}</strong>
-            </p>
-          )}
+            <div className={styles.projectionResult}>
+              {trend !== null && trend.slope <= 0 ? (
+                <p className={styles.empty}>
+                  Accuracy isn't trending upward with cost yet — projection isn't
+                  meaningful until it is.
+                </p>
+              ) : projected !== null ? (
+                <>
+                  <div className={styles.projectionValue}>${projected.toFixed(2)}</div>
+                  <div className={styles.projectionLabel}>
+                    Projected additional spend to reach {targetPercent}%
+                  </div>
+                </>
+              ) : null}
+            </div>
+          </div>
         </>
       )}
     </div>
-  );
-}
-
-function BudgetChartBody({
-  points,
-  trend,
-  currentCost,
-  projectedCost,
-  targetAccuracy,
-}: {
-  points: CostPoint[];
-  trend: ReturnType<typeof fitLinearTrend>;
-  currentCost: number;
-  projectedCost: number | null;
-  targetAccuracy: number;
-}) {
-  const maxCost = Math.max(...points.map((p) => p.cost), currentCost + (projectedCost ?? 0));
-  const xScale = (cost: number) => 20 + (cost / (maxCost || 1)) * 360;
-  const yScale = (accuracy: number) => 180 - accuracy * 160;
-
-  const realPath = points.map((p) => `${xScale(p.cost)},${yScale(p.accuracy)}`).join(" ");
-
-  const projectedTargetCost =
-    projectedCost !== null ? currentCost + projectedCost : null;
-
-  return (
-    <>
-      <polyline points={realPath} fill="none" stroke="var(--accent)" strokeWidth={2} />
-      {points.map((p, i) => (
-        <circle key={i} cx={xScale(p.cost)} cy={yScale(p.accuracy)} r={3} fill="var(--accent)" />
-      ))}
-      {trend !== null && projectedTargetCost !== null && (
-        <>
-          <line
-            x1={xScale(currentCost)}
-            y1={yScale(trend.slope * currentCost + trend.intercept)}
-            x2={xScale(projectedTargetCost)}
-            y2={yScale(targetAccuracy)}
-            stroke="var(--brass)"
-            strokeWidth={1.5}
-            strokeDasharray="4 4"
-          />
-          <circle cx={xScale(projectedTargetCost)} cy={yScale(targetAccuracy)} r={4} fill="var(--brass)" />
-        </>
-      )}
-    </>
   );
 }

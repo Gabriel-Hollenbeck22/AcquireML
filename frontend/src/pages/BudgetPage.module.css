@@ -41,49 +41,138 @@
   margin-top: 0.2rem;
 }
 
-.chart {
-  display: block;
+.chartCard {
+  position: relative;
   border-radius: 8px;
   background: var(--paper-raised);
   border: 1px solid var(--line);
   padding: 16px 10px 10px;
   margin-bottom: 1.5rem;
-  box-sizing: border-box;
 }
 
-.form {
-  max-width: 480px;
-  margin-bottom: 1rem;
+.chartHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin: 0 10px 8px;
+  flex-wrap: wrap;
+  gap: 0.4rem;
 }
 
-.form label {
+.chartHead h4 {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.chartLegend {
+  display: flex;
+  gap: 0.9rem;
   font-family: var(--font-mono);
-  font-size: 0.8rem;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-  display: block;
-  margin-bottom: 0.4rem;
+  font-size: 0.7rem;
 }
 
-.form input[type="number"] {
+.legendActual {
+  color: var(--accent);
+}
+
+.legendProjected {
+  color: var(--brass);
+}
+
+.projectionPanel {
+  display: flex;
+  align-items: stretch;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.targetField {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 1rem 1.2rem;
+  border-radius: 8px;
   background: var(--paper-raised);
   border: 1px solid var(--line);
-  color: var(--ink);
-  padding: 0.6rem 0.8rem;
-  border-radius: 3px;
-  font-family: var(--font-body);
-  font-size: 0.95rem;
+  min-width: 200px;
 }
 
-.projection {
+.targetField label {
   font-family: var(--font-mono);
-  font-size: 1rem;
-  color: var(--ink);
-  margin-top: 1rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
 }
 
-.projection strong {
+.targetInputWrap {
+  display: flex;
+  align-items: center;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0 0.7rem;
+  transition: border-color 0.15s ease;
+}
+
+.targetInputWrap:focus-within {
+  border-color: var(--accent);
+}
+
+.targetInputWrap input[type="number"] {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--ink);
+  padding: 0.55rem 0;
+  width: 5ch;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 1.4rem;
+  -moz-appearance: textfield;
+}
+
+.targetInputWrap input[type="number"]::-webkit-outer-spin-button,
+.targetInputWrap input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.targetSuffix {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 1.4rem;
+  color: var(--ink-faint);
+  margin-left: 0.15rem;
+}
+
+.projectionResult {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 1rem 1.2rem;
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(224, 189, 108, 0.08), rgba(224, 189, 108, 0));
+  border: 1px solid var(--line-strong);
+  min-width: 220px;
+}
+
+.projectionValue {
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 2rem;
   color: var(--accent);
-  font-size: 1.1rem;
+  line-height: 1.1;
+}
+
+.projectionLabel {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+  color: var(--ink-soft);
 }
