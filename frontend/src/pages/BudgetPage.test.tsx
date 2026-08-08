@@ -66,10 +66,12 @@ describe("BudgetPage", () => {
     const input = await screen.findByLabelText(/target accuracy/i);
     expect(input).toHaveValue(95);
     expect(await screen.findByText(/reach 95%/i)).toBeInTheDocument();
+    expect(await screen.findByText("$12.22")).toBeInTheDocument();
 
     fireEvent.change(input, { target: { value: "90" } });
 
     expect(await screen.findByText(/reach 90%/i)).toBeInTheDocument();
+    expect(await screen.findByText("$5.56")).toBeInTheDocument();
   });
 
   it("shows an error message when a request fails", async () => {
