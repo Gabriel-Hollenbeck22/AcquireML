@@ -993,3 +993,8 @@ def test_compare_strategies_rejects_small_known_pool(tmp_path, labeled_csv):
     with pytest.raises(RuntimeError, match="at least 20 known samples"):
         sess.compare_strategies()
     sess.close()
+
+
+def test_compare_strategies_rejects_zero_runs(session):
+    with pytest.raises(ValueError, match="runs must be at least 1"):
+        session.compare_strategies(runs=0)

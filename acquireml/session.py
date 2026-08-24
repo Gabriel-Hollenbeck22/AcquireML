@@ -465,6 +465,9 @@ class Session:
         assume a research-scale dataset with thousands of samples; a
         session's known pool is typically far smaller.
         """
+        if runs < 1:
+            raise ValueError(f"runs must be at least 1 (got {runs}).")
+
         X, y = self._get_known_Xy()
         n_known = len(X)
         if n_known < 20:

@@ -435,3 +435,10 @@ def test_compare_too_few_known_returns_409(client, tmp_path):
 def test_compare_unknown_session_404s(client):
     resp = client.get("/sessions/nope/compare")
     assert resp.status_code == 404
+
+
+def test_compare_zero_runs_returns_400(client, labeled_csv):
+    _create_session(client, labeled_csv)
+
+    resp = client.get("/sessions/azm-project/compare?runs=0")
+    assert resp.status_code == 400
