@@ -21,6 +21,7 @@ Workflow
 from __future__ import annotations
 
 import json
+import math
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
@@ -42,6 +43,7 @@ from acquireml.explain import (
     predict_at_threshold,
     train_full_model,
 )
+from acquireml.validate import run_validation
 from acquireml.round_report import generate_round_report
 
 DEFAULT_DB_NAME = "acquireml_session.db"
@@ -506,6 +508,36 @@ class Session:
             "random_accuracy": [float(v) for v in rs_mean],
             "runs": runs,
             "final_gap": float(al_mean[-1] - rs_mean[-1]),
+        }
+
+    def validate_holdout(self, test_size: float = 0.2) -> dict:
+        """Train on a subset of the known pool, evaluate on a held-out slice
+        genuinely unseen during training — the same methodology validate.py's
+        CLI already uses, applied to the session's own data instead of the
+        fixed research dataset."""
+        X, y = self._get_known_Xy()
+        min_class_count = int(y.value_counts().min())
+        if min_class_count < 4:
+            raise RuntimeError(
+                f"Need at least 4 samples in the smaller class to hold out a "
+                f"meaningful test split (have {min_class_count}). Label more "
+                f"samples first."
+            )
+
+        results = run_validation(X, y, test_size=test_size, random_state=42)
+        roc_auc = results["roc_auc"]
+        return {
+            "n_train": results["n_train"],
+            "n_holdout": results["n_holdout"],
+            "n_holdout_resistant": results["n_holdout_resistant"],
+            "n_holdout_sensitive": results["n_holdout_sensitive"],
+            "balanced_accuracy": results["balanced_accuracy"],
+            "precision": results["precision"],
+            "recall": results["recall"],
+            "f1": results["f1"],
+            "roc_auc": roc_auc if not math.isnan(roc_auc) else None,
+            "tn": results["tn"], "fp": results["fp"],
+            "fn": results["fn"], "tp": results["tp"],
         }
 
     def recommend(

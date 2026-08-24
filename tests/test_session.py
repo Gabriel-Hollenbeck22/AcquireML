@@ -21,7 +21,10 @@ def labeled_csv(tmp_path: Path) -> Path:
         index=[f"known_{i}" for i in range(20)],
         columns=[f"f{j}" for j in range(10)],
     )
-    df["outcome"] = (df["f0"] | df["f1"]).astype(int)
+    # A majority-vote over 5 features (rather than a 2-feature OR) so both
+    # classes have enough members (11/9) for stratified holdout splits —
+    # validate_holdout() requires at least 4 samples in the minority class.
+    df["outcome"] = (df[["f0", "f1", "f2", "f3", "f4"]].sum(axis=1) >= 3).astype(int)
     p = tmp_path / "labeled.csv"
     df.to_csv(p)
     return p
@@ -992,6 +995,54 @@ def test_compare_strategies_rejects_small_known_pool(tmp_path, labeled_csv):
 
     with pytest.raises(RuntimeError, match="at least 20 known samples"):
         sess.compare_strategies()
+
+
+# ── validate_holdout ─────────────────────────────────────────────────────────
+
+def test_validate_holdout_splits_known_pool(session):
+    result = session.validate_holdout(test_size=0.25)
+
+    assert result["n_train"] + result["n_holdout"] == 20
+    assert result["n_holdout_resistant"] + result["n_holdout_sensitive"] == result["n_holdout"]
+
+
+def test_validate_holdout_reports_all_metrics(session):
+    result = session.validate_holdout()
+
+    for key in ("balanced_accuracy", "precision", "recall", "f1"):
+        assert 0.0 <= result[key] <= 1.0
+    assert result["roc_auc"] is None or 0.0 <= result["roc_auc"] <= 1.0
+
+
+def test_validate_holdout_confusion_counts_sum_to_holdout_size(session):
+    result = session.validate_holdout()
+
+    total = result["tn"] + result["fp"] + result["fn"] + result["tp"]
+    assert total == result["n_holdout"]
+
+
+def test_validate_holdout_rejects_small_minority_class(tmp_path):
+    """Only 2 positive samples out of 10 — below the 4-sample minimum
+    this method requires for a meaningful stratified holdout split."""
+    import numpy as np
+    import pandas as pd
+    rng = np.random.default_rng(5)
+    df = pd.DataFrame(
+        rng.integers(0, 2, size=(10, 6)).astype(int),
+        index=[f"s_{i}" for i in range(10)],
+        columns=[f"f{j}" for j in range(6)],
+    )
+    df["outcome"] = [1, 1, 0, 0, 0, 0, 0, 0, 0, 0]
+    p = tmp_path / "small.csv"
+    df.to_csv(p)
+
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    sess.init(p, label_col="outcome")
+
+    with pytest.raises(RuntimeError, match="at least 4 samples"):
+        sess.validate_holdout()
+    sess.close()
     sess.close()
 
 

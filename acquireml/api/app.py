@@ -30,6 +30,7 @@ from acquireml.api.schemas import (
     UpdateRequest,
     UpdateResponse,
     UpdateSettingsRequest,
+    ValidateResponse,
 )
 from acquireml.session import Session
 
@@ -288,6 +289,14 @@ def overview(top_n: int = 15, sess: Session = Depends(get_session)) -> OverviewR
 def compare(runs: int = 3, sess: Session = Depends(get_session)) -> CompareResponse:
     with sess:
         return CompareResponse(**sess.compare_strategies(runs=runs))
+
+
+@app.get("/sessions/{name}/validate", response_model=ValidateResponse)
+def validate_holdout(
+    test_size: float = 0.2, sess: Session = Depends(get_session)
+) -> ValidateResponse:
+    with sess:
+        return ValidateResponse(**sess.validate_holdout(test_size=test_size))
 
 
 @app.get("/sessions/{name}/export")

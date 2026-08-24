@@ -160,3 +160,19 @@ class CompareResponse(BaseModel):
     random_accuracy: list[float]
     runs: int
     final_gap: float
+
+
+class ValidateResponse(BaseModel):
+    n_train: int
+    n_holdout: int
+    n_holdout_resistant: int
+    n_holdout_sensitive: int
+    balanced_accuracy: float
+    precision: float
+    recall: float
+    f1: float
+    roc_auc: float | None
+    tn: int
+    fp: int
+    fn: int
+    tp: int

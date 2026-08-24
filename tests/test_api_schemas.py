@@ -18,6 +18,7 @@ from acquireml.api.schemas import (
     UpdateRequest,
     UpdateResponse,
     UpdateSettingsRequest,
+    ValidateResponse,
 )
 
 
@@ -143,3 +144,20 @@ def test_compare_response_shape():
     )
     assert body.final_gap == 0.15
     assert len(body.known_pool_sizes) == 3
+
+
+def test_validate_response_shape():
+    body = ValidateResponse(
+        n_train=32, n_holdout=8, n_holdout_resistant=3, n_holdout_sensitive=5,
+        balanced_accuracy=0.9, precision=0.85, recall=0.95, f1=0.9,
+        roc_auc=0.97, tn=5, fp=0, fn=0, tp=3,
+    )
+    assert body.tp == 3
+
+def test_validate_response_allows_null_roc_auc():
+    body = ValidateResponse(
+        n_train=32, n_holdout=8, n_holdout_resistant=0, n_holdout_sensitive=8,
+        balanced_accuracy=1.0, precision=0.0, recall=0.0, f1=0.0,
+        roc_auc=None, tn=8, fp=0, fn=0, tp=0,
+    )
+    assert body.roc_auc is None

@@ -28,7 +28,10 @@ def labeled_csv(tmp_path):
         index=[f"known_{i}" for i in range(20)],
         columns=[f"f{j}" for j in range(10)],
     )
-    df["outcome"] = (df["f0"] | df["f1"]).astype(int)
+    # A majority-vote over 5 features (rather than a 2-feature OR) so both
+    # classes have enough members (11/9) for stratified holdout splits —
+    # validate_holdout() requires at least 4 samples in the minority class.
+    df["outcome"] = (df[["f0", "f1", "f2", "f3", "f4"]].sum(axis=1) >= 3).astype(int)
     p = tmp_path / "labeled.csv"
     df.to_csv(p)
     return p
@@ -442,3 +445,45 @@ def test_compare_zero_runs_returns_400(client, labeled_csv):
 
     resp = client.get("/sessions/azm-project/compare?runs=0")
     assert resp.status_code == 400
+
+
+def test_validate_returns_holdout_metrics(client, labeled_csv):
+    _create_session(client, labeled_csv)
+
+    resp = client.get("/sessions/azm-project/validate")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["n_train"] + body["n_holdout"] == 20
+    assert set(body.keys()) >= {
+        "balanced_accuracy", "precision", "recall", "f1", "roc_auc",
+        "tn", "fp", "fn", "tp",
+    }
+
+
+def test_validate_small_minority_class_returns_409(client, tmp_path):
+    import numpy as np
+    import pandas as pd
+    rng = np.random.default_rng(9)
+    df = pd.DataFrame(
+        rng.integers(0, 2, size=(10, 6)).astype(int),
+        index=[f"s_{i}" for i in range(10)],
+        columns=[f"f{j}" for j in range(6)],
+    )
+    df["outcome"] = [1, 1, 0, 0, 0, 0, 0, 0, 0, 0]
+    small_csv = tmp_path / "small.csv"
+    df.to_csv(small_csv)
+
+    with open(small_csv, "rb") as f:
+        client.post(
+            "/sessions",
+            data={"name": "tiny-project", "label_col": "outcome"},
+            files={"labeled_file": ("small.csv", f, "text/csv")},
+        )
+
+    resp = client.get("/sessions/tiny-project/validate")
+    assert resp.status_code == 409
+
+
+def test_validate_unknown_session_404s(client):
+    resp = client.get("/sessions/nope/validate")
+    assert resp.status_code == 404
