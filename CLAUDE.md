@@ -45,7 +45,7 @@ paths (`data/...`) will not resolve.
 - `make recommend` — rank new unlabeled strains (edit --input-file first)
 - `make validate`  — holdout test on unseen strains → azm_validation.png
 - `make api`       — run the web UI backend API (dev server, auto-reload)
-- `make test`      — run all tests (236 on main)
+- `make test`      — run all tests (272 on main)
 
 CLI entry point: `acquireml --antibiotic azm --iterations 10` (registered via pyproject.toml).
 
@@ -80,7 +80,7 @@ acquireml/                  Python package
   demo.py                   Synthetic data generator + `acquireml demo --init` zero-setup session
   api/                      FastAPI web UI backend — store.py (session path resolution),
                               schemas.py (Pydantic models), app.py (the FastAPI app + endpoints)
-tests/                      236 tests (test_loader/test_engine/test_recommend/test_validate/
+tests/                      272 tests (test_loader/test_engine/test_recommend/test_validate/
                               test_generic_loader/test_session/test_explain/test_round_report/
                               test_demo/test_api_store/test_api_schemas/test_api_app)
 docs/                       Charts committed for README display (PNGs)
@@ -155,7 +155,8 @@ across many features (matches its multi-gene biology).
 - `main` — Phases 1–3 + holdout validation + real-world engine + stopping criteria +
   cost tracking + batch diversity + round report + VCF support + model selection +
   calibration + demo mode + AZM recall threshold tuning + landing page + full web UI
-  (FastAPI backend + React frontend, all 7 pages). 236 backend tests + 82 frontend
+  (FastAPI backend + React frontend, all 11 pages — including the Phase 5+6 analysis
+  pages: Overview, Explain, Compare, Validate). 272 backend tests + 108 frontend
   tests. Stable. Pushed to GitHub. Repo is public.
 - All feature branches (`feature/real-world-engine`, `feature/stopping-criteria`,
   `feature/cost-tracking`, `feature/batch-diversity`, `feature/round-report`,
@@ -203,6 +204,22 @@ a thin translation layer — no session/model logic lives here. Run with
 optional) so patience/min_delta/cost_per_sample/diversity_weight/model/
 calibration can be edited in place via `Session.update_settings()` (which has
 its own independent validation logic), applying only the non-None fields sent.
+Phase 5+6 added four session-scoped analysis endpoints — `GET .../explain`,
+`GET .../overview`, `GET .../compare`, `GET .../validate` — each backed by a
+new `Session` method (`feature_importance()`, `overview()`,
+`compare_strategies()`, `validate_holdout()`). Three of the four reuse
+existing dataset-agnostic functions directly: `explain.py`'s
+`train_full_model()`/`extract_importances()`/`get_cross_val_score()` for
+Explain, `ActiveLearningEngine` (the same hindsight-simulation engine the
+core product already uses) for Compare, and `validate.py`'s `run_validation()`
+for Validate. Overview is new logic rather than a wrapper, and — notably —
+none of the four wrap `explore.py`: unlike the other three CLI modules,
+`explore.py` hardcodes the original research dataset's `metadata.csv` schema
+(`azm_sr`/`cip_sr`/`cfx_sr` columns, `Year`, `Country`, even a hardcoded
+unitig-count array), so it can't work against an arbitrary uploaded session;
+`Session.overview()` computes class balance and feature prevalence from
+whatever data the session actually has instead, and `explore.py` itself is
+untouched.
 
 **Web UI frontend** (`frontend/`): React + TypeScript + Vite, talking to
 the backend at `http://localhost:8000`. `src/api/client.ts` is the sole
@@ -215,15 +232,17 @@ needed for the landing page's strict-CSP artifact renderer); the fonts
 loaded are Manrope and IBM Plex Mono only (see the visual-system note
 below on why the landing page's serif face isn't among them). Covers
 the full session
-lifecycle across seven pages: `SessionListPage` and `NewSessionPage`
-(create), `SessionLayout` (shared nav shell for the five session-scoped
+lifecycle across eleven pages: `SessionListPage` and `NewSessionPage`
+(create), `SessionLayout` (shared nav shell for the nine session-scoped
 routes below), `DashboardPage` (status + stopping-warning banner +
 accuracy/cost chart), `RecommendationsPage` (batch table with inline 0/1
 result entry, submits to `/update`), `HistoryPage` (round table +
-chart + CSV export), `SettingsPage` (edit + danger zone), and
-`BudgetPage` (cost/accuracy trend projection). Routing is `/`, `/new`, and
-`/sessions/:name[/recommend|/history|/settings|/budget]` via nested React
-Router routes.
+chart + CSV export), `SettingsPage` (edit + danger zone),
+`BudgetPage` (cost/accuracy trend projection), and the four Phase 5+6
+analysis pages `OverviewPage`, `ExplainPage`, `ComparePage`, and
+`ValidatePage` (see below). Routing is `/`, `/new`, and
+`/sessions/:name[/recommend|/history|/overview|/explain|/compare|/validate|/settings|/budget]`
+via nested React Router routes.
 Charts use Recharts, reading the same CSS custom-property tokens as the
 rest of the UI. A later visual-overhaul pass gave the app a denser,
 motion-forward visual system distinct from the landing page: Manrope is
@@ -274,7 +293,26 @@ keydown listener plus a "⌘K" hint chip rendered by `AppShell` on every route,
 filtered by `commandFilter.ts`) jumps to any session or, from inside one, any
 of its five sub-pages, with arrow keys to move the selection, Enter to
 navigate, and Escape or a backdrop click to close it without navigating.
-82 frontend tests.
+Phase 5+6 (branch `feature/web-ui-analysis-pages`) added four session-scoped
+analysis pages, all reusing the same nav shell, CSS conventions, and
+stat-card/bar-list patterns established by the earlier pages: `OverviewPage`
+(four stat cards — known/pool/features/positive rate — plus a proportionally
+sorted feature-prevalence bar list), `ExplainPage` (cross-validated accuracy
+stat plus a ranked, strictly-decreasing top-feature-importance bar list),
+`ComparePage` (active learning vs. random sampling), and `ValidatePage`
+(five holdout metric cards — balanced accuracy, precision, recall, F1,
+ROC-AUC — plus a four-quadrant confusion matrix, its labels matched
+character-for-character to `validate.py`'s own CLI wording). `ComparePage` is
+the one page in the whole app that does not fetch on mount — the comparison
+trains several models and can take a few seconds, so it shows an explanatory
+description and a "Run comparison" button and only calls
+`GET /sessions/{name}/compare` on click, rendering the chart and a
+plain-language summary sentence once the response lands. The command palette
+was deliberately left unchanged by this phase — none of the four new pages
+were added to `commandFilter.ts`'s static command list, so `⌘K` still jumps
+only to the original five sub-pages (Dashboard/Recommendations/History/
+Settings/Budget) plus any session.
+108 frontend tests.
 
 ## Feature Roadmap
 
@@ -300,18 +338,25 @@ scoped) would need fresh ideas from Gabe — see "Current Status & What's Next" 
 
 ## Current Status & What's Next
 
-236 backend tests + 82 frontend tests passing on main. Repo is public. All work
+272 backend tests + 108 frontend tests passing on main. Repo is public. All work
 pushed to GitHub.
 
 **Technical:** Full original feature roadmap complete (stopping criteria → cost
 tracking → batch diversity → round report → VCF support → model selection →
 calibration → demo mode), plus AZM recall threshold tuning, a landing page
 (`docs/index.html`), and a complete web UI — FastAPI backend (`acquireml/api/`)
-and a 7-page React frontend (`frontend/`) covering the full session lifecycle
+and an 11-page React frontend (`frontend/`) covering the full session lifecycle
 (create → recommend → submit results → dashboard/history → CSV export) plus
 session settings editing, a sortable portfolio session list, a cost/accuracy
 budget projection page, and a Cmd+K command palette, verified end-to-end in a
-real browser against real servers. No specific next
+real browser against real servers. ✅ Phase 5+6 (analysis pages) is also now
+complete: four session-scoped pages — Session Overview, Feature Importance
+(Explain), AL-vs-Random Comparison, and Holdout Validation — wrapping the
+dataset-agnostic cores of `explain.py` and `validate.py` plus
+`ActiveLearningEngine` directly for the comparison simulation (`explore.py`
+deliberately left untouched — see the Web UI backend note above), also
+verified end-to-end in a real browser including both the happy path and a
+genuinely insufficient-data error path (not just mocked tests). No specific next
 feature queued — check with Gabe for what's next (candidates: README refresh to
 showcase the web UI, or moving into outreach now that the repo is public and has
 a polished demo surface).
