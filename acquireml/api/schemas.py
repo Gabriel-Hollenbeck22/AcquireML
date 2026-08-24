@@ -152,3 +152,11 @@ class OverviewResponse(BaseModel):
     n_negative: int
     positive_rate: float | None
     top_prevalent_features: list[PrevalentFeatureRow]
+
+
+class CompareResponse(BaseModel):
+    known_pool_sizes: list[int]
+    al_accuracy: list[float]
+    random_accuracy: list[float]
+    runs: int
+    final_gap: float

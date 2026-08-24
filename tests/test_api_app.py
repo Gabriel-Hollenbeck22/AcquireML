@@ -396,3 +396,42 @@ def test_overview_returns_class_balance_and_prevalence(client, labeled_csv):
 def test_overview_unknown_session_404s(client):
     resp = client.get("/sessions/nope/overview")
     assert resp.status_code == 404
+
+
+def test_compare_returns_two_curves(client, labeled_csv):
+    _create_session(client, labeled_csv)
+
+    resp = client.get("/sessions/azm-project/compare?runs=2")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert len(body["al_accuracy"]) == len(body["random_accuracy"])
+    assert body["runs"] == 2
+
+
+def test_compare_too_few_known_returns_409(client, tmp_path):
+    import numpy as np
+    import pandas as pd
+    rng = np.random.default_rng(1)
+    df = pd.DataFrame(
+        rng.integers(0, 2, size=(10, 6)).astype(int),
+        index=[f"s_{i}" for i in range(10)],
+        columns=[f"f{j}" for j in range(6)],
+    )
+    df["outcome"] = (df["f0"] | df["f1"]).astype(int)
+    small_csv = tmp_path / "small.csv"
+    df.to_csv(small_csv)
+
+    with open(small_csv, "rb") as f:
+        client.post(
+            "/sessions",
+            data={"name": "tiny-project", "label_col": "outcome"},
+            files={"labeled_file": ("small.csv", f, "text/csv")},
+        )
+
+    resp = client.get("/sessions/tiny-project/compare")
+    assert resp.status_code == 409
+
+
+def test_compare_unknown_session_404s(client):
+    resp = client.get("/sessions/nope/compare")
+    assert resp.status_code == 404

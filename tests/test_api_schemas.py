@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from acquireml.api.schemas import (
+    CompareResponse,
     FeatureImportanceResponse,
     FeatureImportanceRow,
     HistoryRow,
@@ -133,3 +134,12 @@ def test_overview_response_shape():
     )
     assert body.n_known == 40
     assert body.top_prevalent_features[0].prevalence == 0.9
+
+
+def test_compare_response_shape():
+    body = CompareResponse(
+        known_pool_sizes=[5, 7, 9], al_accuracy=[0.6, 0.7, 0.8],
+        random_accuracy=[0.55, 0.6, 0.65], runs=3, final_gap=0.15,
+    )
+    assert body.final_gap == 0.15
+    assert len(body.known_pool_sizes) == 3

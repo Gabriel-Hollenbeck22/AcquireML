@@ -31,7 +31,8 @@ import pandas as pd
 from sklearn.metrics import balanced_accuracy_score
 
 from acquireml.generic_loader import GenericLoader
-from acquireml.strategies import UncertaintySampling, DiverseSampling, _binary_entropy
+from acquireml.engine import ActiveLearningEngine
+from acquireml.strategies import UncertaintySampling, RandomSampling, DiverseSampling, _binary_entropy
 from acquireml.explain import (
     CALIBRATION_METHODS,
     MODEL_CHOICES,
@@ -453,6 +454,55 @@ class Session:
             "n_negative": n_negative,
             "positive_rate": n_positive / n_known if n_known > 0 else None,
             "top_prevalent_features": top_features,
+        }
+
+    def compare_strategies(self, runs: int = 3) -> dict:
+        """Hindsight-simulate Active Learning vs Random Sampling over the
+        session's own known pool, averaged across `runs` seeds.
+
+        Simulation parameters are auto-scaled from the known pool size —
+        this app's CLI defaults (initial_pool=10, batch=25, iterations=15)
+        assume a research-scale dataset with thousands of samples; a
+        session's known pool is typically far smaller.
+        """
+        X, y = self._get_known_Xy()
+        n_known = len(X)
+        if n_known < 20:
+            raise RuntimeError(
+                f"Need at least 20 known samples to compare strategies "
+                f"(have {n_known}). Label more samples first."
+            )
+
+        initial_pool = max(5, n_known // 10)
+        batch_size = max(2, n_known // 20)
+        iterations = min(10, (n_known - initial_pool) // batch_size)
+
+        al_curves, rs_curves = [], []
+        al_hist = None
+        for run in range(runs):
+            al_hist = ActiveLearningEngine(
+                X, y, build_estimator("rf"), UncertaintySampling(),
+                initial_pool_size=initial_pool, batch_size=batch_size,
+                random_state=run,
+            ).run(iterations)
+            rs_hist = ActiveLearningEngine(
+                X, y, build_estimator("rf"), RandomSampling(random_state=run),
+                initial_pool_size=initial_pool, batch_size=batch_size,
+                random_state=run,
+            ).run(iterations)
+            al_curves.append([m["balanced_accuracy"] for m in al_hist])
+            rs_curves.append([m["balanced_accuracy"] for m in rs_hist])
+
+        sizes = [m["known_pool_size"] for m in al_hist]
+        al_mean = np.mean(al_curves, axis=0)
+        rs_mean = np.mean(rs_curves, axis=0)
+
+        return {
+            "known_pool_sizes": [int(s) for s in sizes],
+            "al_accuracy": [float(v) for v in al_mean],
+            "random_accuracy": [float(v) for v in rs_mean],
+            "runs": runs,
+            "final_gap": float(al_mean[-1] - rs_mean[-1]),
         }
 
     def recommend(

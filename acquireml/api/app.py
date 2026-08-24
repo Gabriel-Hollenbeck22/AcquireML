@@ -17,6 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from acquireml.api import store
 from acquireml.api.schemas import (
+    CompareResponse,
     FeatureImportanceResponse,
     HistoryRow,
     OverviewResponse,
@@ -281,6 +282,12 @@ def feature_importance(
 def overview(top_n: int = 15, sess: Session = Depends(get_session)) -> OverviewResponse:
     with sess:
         return OverviewResponse(**sess.overview(top_n=top_n))
+
+
+@app.get("/sessions/{name}/compare", response_model=CompareResponse)
+def compare(runs: int = 3, sess: Session = Depends(get_session)) -> CompareResponse:
+    with sess:
+        return CompareResponse(**sess.compare_strategies(runs=runs))
 
 
 @app.get("/sessions/{name}/export")

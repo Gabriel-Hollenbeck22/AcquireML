@@ -948,3 +948,48 @@ def test_overview_caps_top_n_to_total_features(session):
     result = session.overview(top_n=999)
 
     assert len(result["top_prevalent_features"]) == 10  # fixture has 10 features
+
+
+# ── compare_strategies ───────────────────────────────────────────────────────
+
+def test_compare_strategies_returns_matching_length_curves(session):
+    """The `session` fixture has exactly 20 known samples — the minimum
+    this method accepts — so this also exercises the auto-scaling
+    formulas at their lower bound, not just a comfortably large pool."""
+    result = session.compare_strategies(runs=2)
+
+    assert len(result["known_pool_sizes"]) == len(result["al_accuracy"])
+    assert len(result["known_pool_sizes"]) == len(result["random_accuracy"])
+    assert len(result["known_pool_sizes"]) >= 1
+    assert result["runs"] == 2
+
+
+def test_compare_strategies_known_pool_sizes_increase(session):
+    result = session.compare_strategies(runs=2)
+
+    sizes = result["known_pool_sizes"]
+    assert sizes == sorted(sizes)
+    assert sizes[0] < sizes[-1]
+
+
+def test_compare_strategies_final_gap_matches_last_points(session):
+    result = session.compare_strategies(runs=2)
+
+    expected_gap = result["al_accuracy"][-1] - result["random_accuracy"][-1]
+    assert result["final_gap"] == pytest.approx(expected_gap, abs=1e-9)
+
+
+def test_compare_strategies_rejects_small_known_pool(tmp_path, labeled_csv):
+    """labeled_csv has 20 samples — trim to 10 to go below the minimum."""
+    import pandas as pd
+    df = pd.read_csv(labeled_csv, index_col=0).iloc[:10]
+    small_csv = tmp_path / "small.csv"
+    df.to_csv(small_csv)
+
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    sess.init(small_csv, label_col="outcome")
+
+    with pytest.raises(RuntimeError, match="at least 20 known samples"):
+        sess.compare_strategies()
+    sess.close()
