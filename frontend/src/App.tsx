@@ -9,6 +9,7 @@ import HistoryPage from "./pages/HistoryPage";
 import OverviewPage from "./pages/OverviewPage";
 import ExplainPage from "./pages/ExplainPage";
 import ComparePage from "./pages/ComparePage";
+import ValidatePage from "./pages/ValidatePage";
 import SettingsPage from "./pages/SettingsPage";
 import BudgetPage from "./pages/BudgetPage";
 
@@ -26,6 +27,7 @@ export default function App() {
             <Route path="overview" element={<OverviewPage />} />
             <Route path="explain" element={<ExplainPage />} />
             <Route path="compare" element={<ComparePage />} />
+            <Route path="validate" element={<ValidatePage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="budget" element={<BudgetPage />} />
           </Route>
