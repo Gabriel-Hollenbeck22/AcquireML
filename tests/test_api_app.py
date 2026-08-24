@@ -353,3 +353,30 @@ def test_update_settings_rejects_unknown_model(client, labeled_csv):
 def test_update_settings_unknown_session_404s(client):
     resp = client.patch("/sessions/nope/settings", json={"patience": 5})
     assert resp.status_code == 404
+
+
+def test_explain_returns_ranked_features(client, labeled_csv):
+    _create_session(client, labeled_csv)
+
+    resp = client.get("/sessions/azm-project/explain?top_n=5")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert len(body["features"]) == 5
+    assert body["total_features"] == 10
+    assert set(body["features"][0].keys()) == {
+        "rank", "feature", "importance", "cumulative_importance",
+    }
+
+
+def test_explain_default_top_n_is_20(client, labeled_csv):
+    _create_session(client, labeled_csv)
+
+    resp = client.get("/sessions/azm-project/explain")
+    assert resp.status_code == 200
+    # the fixture only has 10 features — capped, not padded
+    assert len(resp.json()["features"]) == 10
+
+
+def test_explain_unknown_session_404s(client):
+    resp = client.get("/sessions/nope/explain")
+    assert resp.status_code == 404

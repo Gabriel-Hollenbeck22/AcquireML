@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 from acquireml.api.schemas import (
+    FeatureImportanceResponse,
+    FeatureImportanceRow,
     HistoryRow,
     RecommendResponse,
     RecommendRow,
@@ -97,3 +99,25 @@ def test_update_settings_request_all_fields_optional():
 def test_update_settings_request_accepts_partial_fields():
     body = UpdateSettingsRequest(patience=5, cost_per_sample=2.5)
     assert body.model_dump(exclude_none=True) == {"patience": 5, "cost_per_sample": 2.5}
+
+
+def test_feature_importance_response_shape():
+    body = FeatureImportanceResponse(
+        features=[
+            FeatureImportanceRow(rank=1, feature="unitig_3", importance=0.42, cumulative_importance=0.42),
+        ],
+        cv_accuracy_mean=0.91,
+        cv_accuracy_std=0.03,
+        total_features=500,
+        n_known=40,
+    )
+    assert body.features[0].feature == "unitig_3"
+    assert body.cv_accuracy_mean == 0.91
+
+
+def test_feature_importance_response_allows_null_cv():
+    body = FeatureImportanceResponse(
+        features=[], cv_accuracy_mean=None, cv_accuracy_std=None,
+        total_features=10, n_known=3,
+    )
+    assert body.cv_accuracy_mean is None

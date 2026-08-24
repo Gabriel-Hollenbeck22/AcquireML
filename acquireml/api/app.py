@@ -17,6 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from acquireml.api import store
 from acquireml.api.schemas import (
+    FeatureImportanceResponse,
     HistoryRow,
     RecommendResponse,
     RecommendRow,
@@ -265,6 +266,14 @@ def update_settings(
     with sess:
         result = sess.update_settings(**body.model_dump(exclude_none=True))
         return StatusResponse(**result)
+
+
+@app.get("/sessions/{name}/explain", response_model=FeatureImportanceResponse)
+def feature_importance(
+    top_n: int = 20, sess: Session = Depends(get_session)
+) -> FeatureImportanceResponse:
+    with sess:
+        return FeatureImportanceResponse(**sess.feature_importance(top_n=top_n))
 
 
 @app.get("/sessions/{name}/export")

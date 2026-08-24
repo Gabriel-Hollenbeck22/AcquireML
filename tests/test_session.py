@@ -847,3 +847,71 @@ def test_export_empty_history_writes_header_only_csv(tmp_path, labeled_csv, pool
     assert "round_number" in df.columns
     assert "accuracy" in df.columns
     sess.close()
+
+
+# ── feature_importance ───────────────────────────────────────────────────────
+
+def test_feature_importance_ranks_features(session):
+    result = session.feature_importance(top_n=5)
+
+    assert len(result["features"]) == 5
+    assert result["total_features"] == 10
+    assert result["n_known"] == 20
+    # ranks are 1-indexed and strictly increasing
+    assert [f["rank"] for f in result["features"]] == [1, 2, 3, 4, 5]
+    # importances are sorted descending
+    importances = [f["importance"] for f in result["features"]]
+    assert importances == sorted(importances, reverse=True)
+
+
+def test_feature_importance_cumulative_importance_increases(session):
+    result = session.feature_importance(top_n=5)
+
+    cumulative = [f["cumulative_importance"] for f in result["features"]]
+    assert cumulative == sorted(cumulative)
+
+
+def test_feature_importance_reports_cv_accuracy_with_enough_data(session):
+    result = session.feature_importance(top_n=5)
+
+    # the `session` fixture's 20 labeled samples have enough of both
+    # classes for a >=2-fold CV (outcome = f0 | f1, not degenerate)
+    assert result["cv_accuracy_mean"] is not None
+    assert result["cv_accuracy_std"] is not None
+    assert 0.0 <= result["cv_accuracy_mean"] <= 1.0
+
+
+def test_feature_importance_skips_cv_when_pool_too_small(tmp_path):
+    """A known pool with only 1 sample of a class can't support any
+    cross-validation split — cv_accuracy_mean/std should be None rather
+    than raising."""
+    import numpy as np
+    import pandas as pd
+    rng = np.random.default_rng(3)
+    df = pd.DataFrame(
+        rng.integers(0, 2, size=(5, 6)).astype(int),
+        index=[f"s_{i}" for i in range(5)],
+        columns=[f"f{j}" for j in range(6)],
+    )
+    df["outcome"] = [1, 0, 0, 0, 0]  # only 1 positive sample
+    p = tmp_path / "tiny.csv"
+    df.to_csv(p)
+
+    db = tmp_path / "s.db"
+    sess = Session(db)
+    sess.init(p, label_col="outcome")
+
+    result = sess.feature_importance(top_n=3)
+
+    assert result["cv_accuracy_mean"] is None
+    assert result["cv_accuracy_std"] is None
+    # feature importances are still computed — only CV is skipped
+    assert len(result["features"]) == 3
+    sess.close()
+
+
+def test_feature_importance_caps_top_n_to_total_features(session):
+    result = session.feature_importance(top_n=999)
+
+    assert len(result["features"]) == 10  # session fixture has 10 features
+    assert result["total_features"] == 10

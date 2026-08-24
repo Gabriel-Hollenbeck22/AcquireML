@@ -35,6 +35,9 @@ from acquireml.strategies import UncertaintySampling, DiverseSampling, _binary_e
 from acquireml.explain import (
     CALIBRATION_METHODS,
     MODEL_CHOICES,
+    build_estimator,
+    extract_importances,
+    get_cross_val_score,
     predict_at_threshold,
     train_full_model,
 )
@@ -385,6 +388,46 @@ class Session:
         if calibration_method is not None:
             self._set_meta("calibration_method", calibration_method)
         return self.status()
+
+    def feature_importance(self, top_n: int = 20) -> dict:
+        """Rank the session's features by predictive importance.
+
+        Trains a fresh Random Forest on the full known pool — independent of
+        whichever model the session's own recommend/update cycle is
+        configured to use, since feature_importances_ is only exposed by
+        RandomForestClassifier among this app's model choices. When the
+        known pool has at least 2 samples in every class, also reports a
+        cross-validated balanced accuracy (up to 5-fold, fewer if a class
+        has fewer than 5 members) as a sanity check — skipped (None) when
+        the pool is too small/imbalanced for CV, the same
+        graceful-degradation pattern init()'s calibration/threshold tuning
+        already uses.
+        """
+        X, y = self._get_known_Xy()
+        min_class_count = int(y.value_counts().min())
+
+        cv_mean, cv_std = None, None
+        if min_class_count >= 2:
+            cv_mean, cv_std = get_cross_val_score(X, y, n_splits=min(5, min_class_count))
+
+        model = train_full_model(X, y, model_name="rf", tune_threshold=False)
+        imp_df = extract_importances(model, list(X.columns), top_n=min(top_n, X.shape[1]))
+
+        return {
+            "features": [
+                {
+                    "rank": int(row.rank),
+                    "feature": str(row.unitig),
+                    "importance": float(row.importance),
+                    "cumulative_importance": float(row.cumulative_importance),
+                }
+                for row in imp_df.itertuples()
+            ],
+            "cv_accuracy_mean": cv_mean,
+            "cv_accuracy_std": cv_std,
+            "total_features": int(X.shape[1]),
+            "n_known": int(len(X)),
+        }
 
     def recommend(
         self,

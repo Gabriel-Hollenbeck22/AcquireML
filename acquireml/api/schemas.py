@@ -122,3 +122,18 @@ class UpdateSettingsRequest(BaseModel):
     model: str | None = None
     calibrate: bool | None = None
     calibration_method: str | None = None
+
+
+class FeatureImportanceRow(BaseModel):
+    rank: int
+    feature: str
+    importance: float
+    cumulative_importance: float
+
+
+class FeatureImportanceResponse(BaseModel):
+    features: list[FeatureImportanceRow]
+    cv_accuracy_mean: float | None
+    cv_accuracy_std: float | None
+    total_features: int
+    n_known: int
