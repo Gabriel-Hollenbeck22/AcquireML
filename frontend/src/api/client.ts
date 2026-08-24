@@ -113,6 +113,60 @@ export interface UpdateSettingsInput {
   calibrationMethod?: string;
 }
 
+export interface FeatureImportanceRow {
+  rank: number;
+  feature: string;
+  importance: number;
+  cumulative_importance: number;
+}
+
+export interface FeatureImportanceResponse {
+  features: FeatureImportanceRow[];
+  cv_accuracy_mean: number | null;
+  cv_accuracy_std: number | null;
+  total_features: number;
+  n_known: number;
+}
+
+export interface PrevalentFeatureRow {
+  feature: string;
+  prevalence: number;
+}
+
+export interface OverviewResponse {
+  n_known: number;
+  n_pool: number;
+  n_features: number;
+  n_positive: number;
+  n_negative: number;
+  positive_rate: number | null;
+  top_prevalent_features: PrevalentFeatureRow[];
+}
+
+export interface CompareResponse {
+  known_pool_sizes: number[];
+  al_accuracy: number[];
+  random_accuracy: number[];
+  runs: number;
+  final_gap: number;
+}
+
+export interface ValidateResponse {
+  n_train: number;
+  n_holdout: number;
+  n_holdout_resistant: number;
+  n_holdout_sensitive: number;
+  balanced_accuracy: number;
+  precision: number;
+  recall: number;
+  f1: number;
+  roc_auc: number | null;
+  tn: number;
+  fp: number;
+  fn: number;
+  tp: number;
+}
+
 async function parseErrorDetail(response: Response): Promise<string> {
   try {
     const body = await response.json();
@@ -254,4 +308,58 @@ export async function deleteSession(name: string): Promise<void> {
   if (!response.ok) {
     throw new Error(await parseErrorDetail(response));
   }
+}
+
+export async function getFeatureImportance(
+  name: string,
+  topN?: number
+): Promise<FeatureImportanceResponse> {
+  const url = new URL(`${API_BASE_URL}/sessions/${encodeURIComponent(name)}/explain`);
+  if (topN !== undefined) {
+    url.searchParams.set("top_n", String(topN));
+  }
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response));
+  }
+  return response.json();
+}
+
+export async function getOverview(name: string, topN?: number): Promise<OverviewResponse> {
+  const url = new URL(`${API_BASE_URL}/sessions/${encodeURIComponent(name)}/overview`);
+  if (topN !== undefined) {
+    url.searchParams.set("top_n", String(topN));
+  }
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response));
+  }
+  return response.json();
+}
+
+export async function getComparison(name: string, runs?: number): Promise<CompareResponse> {
+  const url = new URL(`${API_BASE_URL}/sessions/${encodeURIComponent(name)}/compare`);
+  if (runs !== undefined) {
+    url.searchParams.set("runs", String(runs));
+  }
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response));
+  }
+  return response.json();
+}
+
+export async function getValidation(
+  name: string,
+  testSize?: number
+): Promise<ValidateResponse> {
+  const url = new URL(`${API_BASE_URL}/sessions/${encodeURIComponent(name)}/validate`);
+  if (testSize !== undefined) {
+    url.searchParams.set("test_size", String(testSize));
+  }
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response));
+  }
+  return response.json();
 }

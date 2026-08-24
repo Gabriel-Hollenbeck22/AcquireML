@@ -4,9 +4,13 @@ import {
   createSession,
   deleteSession,
   exportHistory,
+  getComparison,
+  getFeatureImportance,
   getHistory,
+  getOverview,
   getRecommendations,
   getStatus,
+  getValidation,
   listSessions,
   resetSession,
   submitResults,
@@ -384,5 +388,98 @@ describe("deleteSession", () => {
     }));
 
     await expect(deleteSession("proj")).rejects.toThrow("No session named 'proj'.");
+  });
+});
+
+describe("getFeatureImportance", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("fetches without a query param when topN is omitted", async () => {
+    const mockResponse = { features: [], cv_accuracy_mean: null, cv_accuracy_std: null, total_features: 10, n_known: 20 };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => mockResponse }));
+
+    const result = await getFeatureImportance("proj");
+
+    expect(fetch).toHaveBeenCalledWith(new URL(`${API_BASE_URL}/sessions/proj/explain`));
+    expect(result).toEqual(mockResponse);
+  });
+
+  it("includes top_n when provided", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ features: [], cv_accuracy_mean: null, cv_accuracy_std: null, total_features: 10, n_known: 20 }),
+    }));
+
+    await getFeatureImportance("proj", 5);
+
+    const calledUrl = (fetch as ReturnType<typeof vi.fn>).mock.calls[0][0] as URL;
+    expect(calledUrl.searchParams.get("top_n")).toBe("5");
+  });
+});
+
+describe("getOverview", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns the parsed response", async () => {
+    const mockResponse = { n_known: 20, n_pool: 30, n_features: 10, n_positive: 5, n_negative: 15, positive_rate: 0.25, top_prevalent_features: [] };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => mockResponse }));
+
+    const result = await getOverview("proj");
+
+    expect(result).toEqual(mockResponse);
+  });
+});
+
+describe("getComparison", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("includes runs when provided", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ known_pool_sizes: [], al_accuracy: [], random_accuracy: [], runs: 5, final_gap: 0 }),
+    }));
+
+    await getComparison("proj", 5);
+
+    const calledUrl = (fetch as ReturnType<typeof vi.fn>).mock.calls[0][0] as URL;
+    expect(calledUrl.searchParams.get("runs")).toBe("5");
+  });
+
+  it("throws with the parsed error detail on a 409", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: false,
+      status: 409,
+      json: async () => ({ detail: "Need at least 20 known samples to compare strategies (have 10)." }),
+    }));
+
+    await expect(getComparison("proj")).rejects.toThrow("Need at least 20 known samples");
+  });
+});
+
+describe("getValidation", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("includes test_size when provided", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        n_train: 16, n_holdout: 4, n_holdout_resistant: 1, n_holdout_sensitive: 3,
+        balanced_accuracy: 0.9, precision: 0.8, recall: 1, f1: 0.89, roc_auc: 0.95,
+        tn: 3, fp: 0, fn: 0, tp: 1,
+      }),
+    }));
+
+    await getValidation("proj", 0.3);
+
+    const calledUrl = (fetch as ReturnType<typeof vi.fn>).mock.calls[0][0] as URL;
+    expect(calledUrl.searchParams.get("test_size")).toBe("0.3");
   });
 });
