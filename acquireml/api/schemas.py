@@ -137,3 +137,18 @@ class FeatureImportanceResponse(BaseModel):
     cv_accuracy_std: float | None
     total_features: int
     n_known: int
+
+
+class PrevalentFeatureRow(BaseModel):
+    feature: str
+    prevalence: float
+
+
+class OverviewResponse(BaseModel):
+    n_known: int
+    n_pool: int
+    n_features: int
+    n_positive: int
+    n_negative: int
+    positive_rate: float | None
+    top_prevalent_features: list[PrevalentFeatureRow]

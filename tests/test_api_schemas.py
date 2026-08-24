@@ -5,6 +5,8 @@ from acquireml.api.schemas import (
     FeatureImportanceResponse,
     FeatureImportanceRow,
     HistoryRow,
+    OverviewResponse,
+    PrevalentFeatureRow,
     RecommendResponse,
     RecommendRow,
     ResetResponse,
@@ -121,3 +123,13 @@ def test_feature_importance_response_allows_null_cv():
         total_features=10, n_known=3,
     )
     assert body.cv_accuracy_mean is None
+
+
+def test_overview_response_shape():
+    body = OverviewResponse(
+        n_known=40, n_pool=60, n_features=30,
+        n_positive=11, n_negative=29, positive_rate=0.275,
+        top_prevalent_features=[PrevalentFeatureRow(feature="unitig_7", prevalence=0.9)],
+    )
+    assert body.n_known == 40
+    assert body.top_prevalent_features[0].prevalence == 0.9

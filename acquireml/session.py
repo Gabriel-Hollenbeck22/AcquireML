@@ -429,6 +429,32 @@ class Session:
             "n_known": int(len(X)),
         }
 
+    def overview(self, top_n: int = 15) -> dict:
+        """Summarize the session's own data: class balance and feature
+        prevalence across the known pool. Pure data description — no model
+        is trained, safe to compute at any known-pool size."""
+        X, y = self._get_known_Xy()
+        n_known = len(X)
+        n_positive = int(y.sum())
+        n_negative = n_known - n_positive
+
+        prevalence = X.mean(axis=0).sort_values(ascending=False)
+        top_n_capped = min(top_n, X.shape[1])
+        top_features = [
+            {"feature": str(name), "prevalence": float(value)}
+            for name, value in prevalence.head(top_n_capped).items()
+        ]
+
+        return {
+            "n_known": n_known,
+            "n_pool": len(self._get_pool_X()),
+            "n_features": int(X.shape[1]),
+            "n_positive": n_positive,
+            "n_negative": n_negative,
+            "positive_rate": n_positive / n_known if n_known > 0 else None,
+            "top_prevalent_features": top_features,
+        }
+
     def recommend(
         self,
         batch_size: int = 10,

@@ -19,6 +19,7 @@ from acquireml.api import store
 from acquireml.api.schemas import (
     FeatureImportanceResponse,
     HistoryRow,
+    OverviewResponse,
     RecommendResponse,
     RecommendRow,
     ResetResponse,
@@ -274,6 +275,12 @@ def feature_importance(
 ) -> FeatureImportanceResponse:
     with sess:
         return FeatureImportanceResponse(**sess.feature_importance(top_n=top_n))
+
+
+@app.get("/sessions/{name}/overview", response_model=OverviewResponse)
+def overview(top_n: int = 15, sess: Session = Depends(get_session)) -> OverviewResponse:
+    with sess:
+        return OverviewResponse(**sess.overview(top_n=top_n))
 
 
 @app.get("/sessions/{name}/export")

@@ -380,3 +380,19 @@ def test_explain_default_top_n_is_20(client, labeled_csv):
 def test_explain_unknown_session_404s(client):
     resp = client.get("/sessions/nope/explain")
     assert resp.status_code == 404
+
+
+def test_overview_returns_class_balance_and_prevalence(client, labeled_csv):
+    _create_session(client, labeled_csv)
+
+    resp = client.get("/sessions/azm-project/overview")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["n_known"] == 20
+    assert body["n_positive"] + body["n_negative"] == 20
+    assert len(body["top_prevalent_features"]) <= 15
+
+
+def test_overview_unknown_session_404s(client):
+    resp = client.get("/sessions/nope/overview")
+    assert resp.status_code == 404

@@ -915,3 +915,36 @@ def test_feature_importance_caps_top_n_to_total_features(session):
 
     assert len(result["features"]) == 10  # session fixture has 10 features
     assert result["total_features"] == 10
+
+
+# ── overview ──────────────────────────────────────────────────────────────────
+
+def test_overview_reports_counts(session):
+    result = session.overview()
+
+    assert result["n_known"] == 20
+    assert result["n_pool"] == 30
+    assert result["n_features"] == 10
+
+
+def test_overview_class_balance_sums_to_n_known(session):
+    result = session.overview()
+
+    assert result["n_positive"] + result["n_negative"] == result["n_known"]
+    assert result["positive_rate"] == result["n_positive"] / result["n_known"]
+
+
+def test_overview_top_prevalent_features_sorted_descending(session):
+    result = session.overview(top_n=5)
+
+    assert len(result["top_prevalent_features"]) == 5
+    prevalences = [f["prevalence"] for f in result["top_prevalent_features"]]
+    assert prevalences == sorted(prevalences, reverse=True)
+    for f in result["top_prevalent_features"]:
+        assert 0.0 <= f["prevalence"] <= 1.0
+
+
+def test_overview_caps_top_n_to_total_features(session):
+    result = session.overview(top_n=999)
+
+    assert len(result["top_prevalent_features"]) == 10  # fixture has 10 features
