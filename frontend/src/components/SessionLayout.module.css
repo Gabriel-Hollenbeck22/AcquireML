@@ -1,26 +1,71 @@
 .container {
-  display: flex;
-  align-items: flex-start;
-  gap: 2rem;
-  max-width: 1320px;
-  margin: 0 auto;
-  padding: 2rem clamp(2rem, 4vw, 4rem);
+  min-height: 100vh;
 }
 
 .sidebar {
-  flex: 0 0 220px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 230px;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  padding: 1.25rem;
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  padding: 1.75rem 1.25rem;
+  border-right: 1px solid var(--line);
   background: var(--paper-raised);
-  position: sticky;
-  top: 2rem;
+  overflow: hidden;
+  z-index: 2;
+}
+
+.sidebar::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 140px;
+  top: -140px;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    rgba(59, 158, 255, 0.07) 45%,
+    rgba(59, 158, 255, 0.12) 50%,
+    rgba(59, 158, 255, 0.07) 55%,
+    transparent
+  );
+  animation: sidebarScan 9s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes sidebarScan {
+  to {
+    top: 100%;
+  }
+}
+
+.sidebar::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: -1px;
+  width: 1px;
+  height: 100%;
+  background: linear-gradient(180deg, transparent, var(--accent) 50%, transparent);
+  animation: edgeGlow 6s ease-in-out infinite;
+}
+
+@keyframes edgeGlow {
+  0%,
+  100% {
+    opacity: 0.12;
+  }
+  50% {
+    opacity: 0.55;
+  }
 }
 
 .sessionName {
+  position: relative;
   font-family: var(--font-mono);
   font-size: 0.8rem;
   letter-spacing: 0.03em;
@@ -31,37 +76,73 @@
 }
 
 .nav {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  gap: 0.2rem;
 }
 
 .nav a {
+  position: relative;
+  display: flex;
+  align-items: center;
   font-family: var(--font-mono);
   font-size: 0.85rem;
   text-decoration: none;
   color: var(--ink-faint);
-  padding: 0.5rem 0.7rem;
+  padding: 0.55rem 0.7rem 0.55rem 1.15rem;
   border-left: 2px solid transparent;
   border-radius: 4px;
   transition:
     color 0.15s ease,
-    background-color 0.15s ease,
-    border-color 0.15s ease;
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.nav a::before {
+  content: "\203A";
+  position: absolute;
+  left: 0.15rem;
+  color: var(--accent);
+  opacity: 0;
+  transform: translateX(-4px);
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
 }
 
 .nav a:hover {
   color: var(--accent);
   background: rgba(59, 158, 255, 0.08);
+  transform: translateX(3px);
+}
+
+.nav a:hover::before,
+.nav a.active::before {
+  opacity: 1;
+  transform: translateX(0);
 }
 
 .nav a.active {
   color: var(--accent);
   background: rgba(59, 158, 255, 0.12);
   border-left-color: var(--accent);
+  animation: activePulse 2.4s ease-in-out infinite;
+}
+
+@keyframes activePulse {
+  0%,
+  100% {
+    box-shadow: 0 0 8px rgba(59, 158, 255, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(59, 158, 255, 0.35);
+  }
 }
 
 .main {
-  flex: 1;
-  min-width: 0;
+  margin-left: 230px;
+  max-width: 1320px;
+  padding: 2rem clamp(2rem, 4vw, 4rem);
 }
