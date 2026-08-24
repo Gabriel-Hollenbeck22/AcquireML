@@ -995,6 +995,7 @@ def test_compare_strategies_rejects_small_known_pool(tmp_path, labeled_csv):
 
     with pytest.raises(RuntimeError, match="at least 20 known samples"):
         sess.compare_strategies()
+    sess.close()
 
 
 # ── validate_holdout ─────────────────────────────────────────────────────────
@@ -1042,7 +1043,6 @@ def test_validate_holdout_rejects_small_minority_class(tmp_path):
 
     with pytest.raises(RuntimeError, match="at least 4 samples"):
         sess.validate_holdout()
-    sess.close()
     sess.close()
 
 
