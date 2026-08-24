@@ -8,8 +8,8 @@
   content: "";
   position: absolute;
   inset: 0;
-  background-image: linear-gradient(rgba(224, 189, 108, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(224, 189, 108, 0.04) 1px, transparent 1px);
+  background-image: linear-gradient(rgba(59, 158, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59, 158, 255, 0.04) 1px, transparent 1px);
   background-size: 24px 24px;
   pointer-events: none;
 }
@@ -20,7 +20,7 @@
   inset: 0;
   background: radial-gradient(
     220px circle at var(--gx, 50%) var(--gy, 50%),
-    rgba(224, 189, 108, 0.06),
+    rgba(59, 158, 255, 0.06),
     transparent 70%
   );
   pointer-events: none;
@@ -35,9 +35,9 @@
   background: linear-gradient(
     180deg,
     transparent,
-    rgba(224, 189, 108, 0.05) 45%,
-    rgba(224, 189, 108, 0.08) 50%,
-    rgba(224, 189, 108, 0.05) 55%,
+    rgba(59, 158, 255, 0.05) 45%,
+    rgba(59, 158, 255, 0.08) 50%,
+    rgba(59, 158, 255, 0.05) 55%,
     transparent
   );
   animation: scan 6s linear infinite;

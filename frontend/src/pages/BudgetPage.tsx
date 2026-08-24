@@ -152,10 +152,10 @@ export default function BudgetPage() {
                 <Line
                   type="monotone"
                   dataKey="projected"
-                  stroke="var(--brass)"
+                  stroke="var(--accent-cool)"
                   strokeWidth={2}
                   strokeDasharray="6 4"
-                  dot={{ r: 4, fill: "var(--brass)" }}
+                  dot={{ r: 4, fill: "var(--accent-cool)" }}
                   activeDot={{ r: 5 }}
                   connectNulls
                   name="projected"

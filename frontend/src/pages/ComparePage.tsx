@@ -118,7 +118,7 @@ export default function ComparePage() {
                   ]}
                 />
                 <Line type="monotone" dataKey="al" stroke="var(--accent)" strokeWidth={2.5} dot={{ r: 3, fill: "var(--accent)" }} name="al" />
-                <Line type="monotone" dataKey="random" stroke="var(--brass)" strokeWidth={2} strokeDasharray="6 4" dot={{ r: 3, fill: "var(--brass)" }} name="random" />
+                <Line type="monotone" dataKey="random" stroke="var(--accent-cool)" strokeWidth={2} strokeDasharray="6 4" dot={{ r: 3, fill: "var(--accent-cool)" }} name="random" />
               </LineChart>
             </ResponsiveContainer>
           </div>

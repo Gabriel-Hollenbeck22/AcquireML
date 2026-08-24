@@ -44,7 +44,7 @@
 
 .sessionCard:hover {
   border-color: var(--accent);
-  box-shadow: 0 0 0 1px rgba(224, 189, 108, 0.25), 0 8px 24px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 0 1px rgba(59, 158, 255, 0.25), 0 8px 24px rgba(0, 0, 0, 0.4);
   transform: translateY(-1px);
 }
 
@@ -114,7 +114,7 @@
 
 .highAccuracy {
   color: var(--accent);
-  background: rgba(224, 189, 108, 0.12);
+  background: rgba(59, 158, 255, 0.12);
   border-radius: 4px;
   padding: 0 4px;
   width: fit-content;

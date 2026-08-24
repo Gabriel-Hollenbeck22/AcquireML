@@ -88,9 +88,9 @@ export default function AccuracyChart({ history }: AccuracyChartProps) {
               <YAxis
                 yAxisId="cost"
                 orientation="right"
-                stroke="var(--brass)"
-                tick={{ fill: "var(--brass)", fontSize: 12 }}
-                label={{ value: "Cumulative cost", angle: 90, position: "insideRight", fill: "var(--brass)" }}
+                stroke="var(--accent-cool)"
+                tick={{ fill: "var(--accent-cool)", fontSize: 12 }}
+                label={{ value: "Cumulative cost", angle: 90, position: "insideRight", fill: "var(--accent-cool)" }}
               />
             )}
             <Tooltip
@@ -115,9 +115,9 @@ export default function AccuracyChart({ history }: AccuracyChartProps) {
                 yAxisId="cost"
                 type="monotone"
                 dataKey="cost"
-                stroke="var(--brass)"
+                stroke="var(--accent-cool)"
                 strokeWidth={2}
-                dot={{ fill: "var(--brass)" }}
+                dot={{ fill: "var(--accent-cool)" }}
                 name="Cumulative cost"
               />
             )}

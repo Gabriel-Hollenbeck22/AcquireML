@@ -1,17 +1,17 @@
 :root {
-  --paper: #0f0d0a;
-  --paper-raised: #161310;
-  --ink: #ede6d6;
-  --ink-soft: #b7ac94;
-  --ink-faint: #8a8069;
-  --ink-dim: #6b6350;
-  --accent: #e0bd6c;
-  --accent-deep: #c9a24b;
-  --brass: #9c7a3e;
-  --red-data: #a6534c;
-  --line: #2a2419;
-  --line-strong: #4a3f26;
-  --shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --paper: #0a0a0d;
+  --paper-raised: #131620;
+  --ink: #e8ecf5;
+  --ink-soft: #a6b0c3;
+  --ink-faint: #6b7688;
+  --ink-dim: #4a5568;
+  --accent: #3b9eff;
+  --accent-deep: #1e6fe0;
+  --accent-cool: #38bdf8;
+  --red-data: #e5484d;
+  --line: #1c2130;
+  --line-strong: #2a3244;
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
 
   --font-body: "Manrope", -apple-system, system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", monospace;

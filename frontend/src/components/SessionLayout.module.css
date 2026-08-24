@@ -1,28 +1,39 @@
 .container {
+  display: flex;
+  align-items: flex-start;
+  gap: 2rem;
   max-width: 1320px;
   margin: 0 auto;
   padding: 2rem clamp(2rem, 4vw, 4rem);
 }
 
-.header {
+.sidebar {
+  flex: 0 0 220px;
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 2rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--line);
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.25rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper-raised);
+  position: sticky;
+  top: 2rem;
 }
 
 .sessionName {
   font-family: var(--font-mono);
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   letter-spacing: 0.03em;
   color: var(--ink-dim);
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--line);
+  word-break: break-word;
 }
 
 .nav {
   display: flex;
-  gap: 1.2rem;
+  flex-direction: column;
+  gap: 0.15rem;
 }
 
 .nav a {
@@ -30,31 +41,27 @@
   font-size: 0.85rem;
   text-decoration: none;
   color: var(--ink-faint);
-  position: relative;
-  padding-bottom: 4px;
-  transition: color 0.15s ease;
-}
-
-.nav a::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 100%;
-  bottom: 0;
-  height: 1.5px;
-  background: var(--accent);
-  transition: right 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 0.5rem 0.7rem;
+  border-left: 2px solid transparent;
+  border-radius: 4px;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .nav a:hover {
   color: var(--accent);
-}
-
-.nav a:hover::after,
-.nav a.active::after {
-  right: 0;
+  background: rgba(59, 158, 255, 0.08);
 }
 
 .nav a.active {
   color: var(--accent);
+  background: rgba(59, 158, 255, 0.12);
+  border-left-color: var(--accent);
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
 }

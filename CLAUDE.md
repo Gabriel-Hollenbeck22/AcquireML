@@ -225,15 +225,20 @@ untouched.
 the backend at `http://localhost:8000`. `src/api/client.ts` is the sole
 place that knows the backend's URL and response shapes — every
 page/component imports typed functions from it, never calls `fetch`
-directly. `src/styles/tokens.css` carries the same Noir & Gold color
-palette as the landing page (`docs/index.html`) — same hex values —
-loaded from Google Fonts' CDN instead of inlined (that inlining was only
-needed for the landing page's strict-CSP artifact renderer); the fonts
-loaded are Manrope and IBM Plex Mono only (see the visual-system note
-below on why the landing page's serif face isn't among them). Covers
+directly. `src/styles/tokens.css` originally carried the same Noir & Gold
+color palette as the landing page (`docs/index.html`) — same hex values
+— but a later redesign moved the app to its own darker, cooler "electric
+blue" identity (`--paper: #0a0a0d`, `--accent: #3b9eff`) distinct from the
+landing page's warm gold, which is untouched and remains the app's
+visual baseline only historically; fonts still loaded from Google Fonts'
+CDN instead of inlined (that inlining was only needed for the landing
+page's strict-CSP artifact renderer) — Manrope and IBM Plex Mono only
+(see the visual-system note below on why the landing page's serif face
+isn't among them). Covers
 the full session
 lifecycle across eleven pages: `SessionListPage` and `NewSessionPage`
-(create), `SessionLayout` (shared nav shell for the nine session-scoped
+(create), `SessionLayout` (shared left-sidebar nav shell, bordered and
+sticky, for the nine session-scoped
 routes below), `DashboardPage` (status + stopping-warning banner +
 accuracy/cost chart), `RecommendationsPage` (batch table with inline 0/1
 result entry, submits to `/update`), `HistoryPage` (round table +

@@ -25,7 +25,7 @@ export default function SessionLayout() {
 
   return (
     <div className={styles.container}>
-      <header className={styles.header}>
+      <aside className={styles.sidebar}>
         <div className={styles.sessionName}>SESSION://{name}</div>
         <nav className={styles.nav}>
           <NavLink
@@ -86,8 +86,8 @@ export default function SessionLayout() {
             </NavLink>
           )}
         </nav>
-      </header>
-      <main>
+      </aside>
+      <main className={styles.main}>
         <Outlet />
       </main>
     </div>
