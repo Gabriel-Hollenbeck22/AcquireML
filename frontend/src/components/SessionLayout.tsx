@@ -60,6 +60,12 @@ export default function SessionLayout() {
             Explain
           </NavLink>
           <NavLink
+            to={`/sessions/${name}/compare`}
+            className={({ isActive }) => (isActive ? styles.active : undefined)}
+          >
+            Compare
+          </NavLink>
+          <NavLink
             to={`/sessions/${name}/settings`}
             className={({ isActive }) => (isActive ? styles.active : undefined)}
           >

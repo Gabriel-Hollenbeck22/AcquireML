@@ -8,6 +8,7 @@ import RecommendationsPage from "./pages/RecommendationsPage";
 import HistoryPage from "./pages/HistoryPage";
 import OverviewPage from "./pages/OverviewPage";
 import ExplainPage from "./pages/ExplainPage";
+import ComparePage from "./pages/ComparePage";
 import SettingsPage from "./pages/SettingsPage";
 import BudgetPage from "./pages/BudgetPage";
 
@@ -24,6 +25,7 @@ export default function App() {
             <Route path="history" element={<HistoryPage />} />
             <Route path="overview" element={<OverviewPage />} />
             <Route path="explain" element={<ExplainPage />} />
+            <Route path="compare" element={<ComparePage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="budget" element={<BudgetPage />} />
           </Route>

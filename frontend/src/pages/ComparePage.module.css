@@ -1,0 +1,87 @@
+.chartCard {
+  position: relative;
+  border-radius: 8px;
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  padding: 16px 10px 10px;
+  margin-bottom: 1.5rem;
+}
+
+.chartHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin: 0 10px 8px;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.chartHead h4 {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.chartLegend {
+  display: flex;
+  gap: 0.9rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+}
+
+.legendActual {
+  color: var(--accent);
+}
+
+.legendProjected {
+  color: var(--brass);
+}
+
+.intro {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  max-width: 640px;
+  margin-bottom: 1.2rem;
+}
+
+.error {
+  font-family: var(--font-mono);
+  color: var(--red-data);
+  margin-top: 0.8rem;
+}
+
+.runButton {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  color: var(--paper);
+  background: var(--accent-deep);
+  border: none;
+  padding: 0.75rem 1.4rem;
+  border-radius: 3px;
+  cursor: pointer;
+  margin-bottom: 1.5rem;
+}
+
+.runButton:hover:not(:disabled) {
+  background: var(--accent);
+}
+
+.runButton:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.summary {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  color: var(--ink);
+  margin-top: 1rem;
+}
+
+.summaryValue {
+  color: var(--accent);
+  font-size: 1rem;
+}
