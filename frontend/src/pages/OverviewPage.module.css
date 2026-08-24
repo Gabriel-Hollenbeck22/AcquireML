@@ -1,0 +1,101 @@
+.loading,
+.error {
+  font-family: var(--font-mono);
+  color: var(--ink-soft);
+}
+
+.error {
+  color: var(--red-data);
+}
+
+.statRow {
+  display: flex;
+  gap: 0.8rem;
+  margin-bottom: 1.5rem;
+}
+
+.stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0.9rem 1.1rem;
+  border-radius: 8px;
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+}
+
+.statValue {
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 1.5rem;
+  color: var(--ink);
+}
+
+.statLabel {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-top: 0.2rem;
+}
+
+.barCard {
+  border-radius: 8px;
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  padding: 1rem 1.2rem;
+}
+
+.barCard h4 {
+  margin: 0 0 0.9rem;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.barList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.barRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 3fr) 3.5ch;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.barLabel {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.barTrack {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--paper);
+  overflow: hidden;
+}
+
+.barFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--brass), var(--accent));
+  border-radius: 4px;
+}
+
+.barValue {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+  text-align: right;
+}

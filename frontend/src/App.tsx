@@ -6,6 +6,7 @@ import SessionLayout from "./components/SessionLayout";
 import DashboardPage from "./pages/DashboardPage";
 import RecommendationsPage from "./pages/RecommendationsPage";
 import HistoryPage from "./pages/HistoryPage";
+import OverviewPage from "./pages/OverviewPage";
 import SettingsPage from "./pages/SettingsPage";
 import BudgetPage from "./pages/BudgetPage";
 
@@ -20,6 +21,7 @@ export default function App() {
             <Route index element={<DashboardPage />} />
             <Route path="recommend" element={<RecommendationsPage />} />
             <Route path="history" element={<HistoryPage />} />
+            <Route path="overview" element={<OverviewPage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="budget" element={<BudgetPage />} />
           </Route>

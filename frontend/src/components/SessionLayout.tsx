@@ -48,6 +48,12 @@ export default function SessionLayout() {
             History
           </NavLink>
           <NavLink
+            to={`/sessions/${name}/overview`}
+            className={({ isActive }) => (isActive ? styles.active : undefined)}
+          >
+            Overview
+          </NavLink>
+          <NavLink
             to={`/sessions/${name}/settings`}
             className={({ isActive }) => (isActive ? styles.active : undefined)}
           >
