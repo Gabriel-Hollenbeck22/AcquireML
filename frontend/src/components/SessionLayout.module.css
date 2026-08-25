@@ -101,12 +101,17 @@
 }
 
 .nav a::before {
-  content: "\203A";
+  content: "";
   position: absolute;
-  left: 0.15rem;
-  color: var(--accent);
+  left: 0.25rem;
+  top: 50%;
+  width: 0;
+  height: 0;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 5px solid var(--accent);
   opacity: 0;
-  transform: translateX(-4px);
+  transform: translate(-4px, -50%);
   transition:
     opacity 0.2s ease,
     transform 0.2s ease;
@@ -121,7 +126,7 @@
 .nav a:hover::before,
 .nav a.active::before {
   opacity: 1;
-  transform: translateX(0);
+  transform: translate(0, -50%);
 }
 
 .nav a.active {
