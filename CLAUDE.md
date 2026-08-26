@@ -237,8 +237,9 @@ page's strict-CSP artifact renderer) — Manrope and IBM Plex Mono only
 isn't among them). Covers
 the full session
 lifecycle across eleven pages: `SessionListPage` and `NewSessionPage`
-(create), `SessionLayout` (shared left-sidebar nav shell, bordered and
-sticky, for the nine session-scoped
+(create), `SessionLayout` (shared left-sidebar nav shell — fixed to the
+viewport's left edge and spanning the full height, rather than sitting
+in-flow as a bordered card, for the nine session-scoped
 routes below), `DashboardPage` (status + stopping-warning banner +
 accuracy/cost chart), `RecommendationsPage` (batch table with inline 0/1
 result entry, submits to `/update`), `HistoryPage` (round table +
@@ -318,6 +319,20 @@ were added to `commandFilter.ts`'s static command list, so `⌘K` still jumps
 only to the original five sub-pages (Dashboard/Recommendations/History/
 Settings/Budget) plus any session.
 108 frontend tests.
+A later pass redesigned `SessionLayout` again at Gabe's request: the nav
+moved from a horizontal top bar to the fixed full-height left sidebar
+described above, and `tokens.css` moved off the landing page's "Noir &
+Gold" palette onto its own darker, cooler electric-blue identity (see
+the Web UI frontend note above). The sidebar also picked up motion
+consistent with `AppShell`'s scan/cursor-glow effects — a slow scanning
+glow sweep, a pulsing edge-glow line on its right border, a sliding
+triangle indicator plus a `translateX` nudge on nav-link hover, and a
+pulsing glow on the active link. That triangle was originally a text
+character (`content: "\203A"` in a `::before`) rendered in CSS, which
+per the accname spec gets pulled into the link's computed accessible
+name — every nav link's real accessible name was "› Dashboard", "›
+Recommendations", etc., found and fixed by swapping it for a
+border-drawn triangle (`content: ""`) so it's purely decorative.
 
 ## Feature Roadmap
 
@@ -367,10 +382,34 @@ showcase the web UI, or moving into outreach now that the repo is public and has
 a polished demo surface).
 
 **Outreach:**
-- Repo is public; landing page is live at `docs/index.html` (GitHub Pages).
-- Reach out to AMR researchers to LEARN (not pitch): top target Prof. Yonatan Grad (Harvard,
-  N. gonorrhoeae genomics leader); also Dr. Nicole Wheeler (Birmingham, ML for AMR).
-- LinkedIn outreach prompt already drafted (ask Claude to surface it from conversation history).
+- Repo is public; landing page is live at `docs/index.html` (GitHub Pages, served from
+  `docs/.nojekyll` — GitHub Pages runs `docs/` through Jekyll by default, which broke the
+  deploy pipeline for three straight pushes with zero content-level errors; `.nojekyll`
+  makes Pages serve the folder as raw static files instead. If a future push to `docs/`
+  doesn't show up live, check the repo's Actions tab for a failed "pages build and
+  deployment" run before assuming the content itself is wrong).
+- Reach out to AMR researchers to LEARN (not pitch). Target list, roughly in outreach-priority order:
+  - **Tier 1:** Prof. Yonatan Grad (Harvard Chan School — N. gonorrhoeae genomics leader);
+    Dr. Nicole Wheeler (Birmingham — ML for AMR).
+  - **Tier 2 (closest technical match — unitig/k-mer ML for AMR, i.e. your exact method):**
+    Dr. John Lees (EMBL-EBI / Cambridge Infectious Diseases, runs bacpop.org — builds
+    `pyseer` and `unitig-caller`, the tooling family your loader's unitig convention
+    comes from); Mario Marchand & Alexandre Drouin (Université Laval — built Kover,
+    interpretable ML directly on k-mer presence/absence for AMR).
+  - **Tier 3 (N. gonorrhoeae surveillance specifically):** Koji Yahara & Makoto Ohnishi
+    (NIID Tokyo — gonorrhea AMR genomic surveillance/lineage evolution); Evonne Woodson &
+    Brian Raphael (CDC, Division of STD Prevention — run the US GISP/AR Lab Network WGS
+    surveillance this project's Kaggle dataset likely traces back to); Derek Aanensen
+    (Centre for Genomic Pathogen Surveillance, Oxford/Sanger — built Pathogenwatch,
+    including a dedicated N. gonorrhoeae scheme).
+  - **Tier 4 (validates the active-learning half of the pitch, not AMR-specific):**
+    CRyPTIC Consortium — Zamin Iqbal, Derrick Crook, Tim Peto (Oxford) — largest WGS+ML
+    AMR effort outside gonorrhea (tuberculosis), useful as a cross-pathogen comparison point.
+  - Tiers 2–3 are likely better first messages than Tier 1: they're more likely to reply
+    since the tool speaks directly to something they built, not just the disease area.
+- A LinkedIn outreach message was drafted for Prof. Grad/Dr. Wheeler in an earlier session
+  but was never saved anywhere durable (not committed, not in memory) — it no longer exists
+  and would need to be redrafted from scratch if wanted.
 
 ## Working Style With Gabe
 
