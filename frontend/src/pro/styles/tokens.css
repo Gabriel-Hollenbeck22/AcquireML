@@ -1,0 +1,32 @@
+/* frontend/src/pro/styles/tokens.css */
+.pro-root {
+  --pro-paper: #f8fafc;
+  --pro-surface: #ffffff;
+  --pro-ink: #0f172a;
+  --pro-ink-soft: #475569;
+  --pro-ink-faint: #94a3b8;
+  --pro-accent: #1e40af;
+  --pro-accent-bright: #2563eb;
+  --pro-line: #eef2f6;
+  --pro-line-soft: #f1f5f9;
+  --pro-warn-bg: #fffbeb;
+  --pro-warn-border: #fde68a;
+  --pro-warn-ink: #92400e;
+  --pro-pos-bg: #ecfdf5;
+  --pro-pos-ink: #047857;
+  --pro-neg-bg: #fef2f2;
+  --pro-neg-ink: #b91c1c;
+  --pro-radius-sm: 6px;
+  --pro-radius-md: 9px;
+  --pro-radius-lg: 12px;
+  --pro-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05), 0 1px 8px rgba(15, 23, 42, 0.04);
+  --pro-shadow-md: 0 6px 16px rgba(15, 23, 42, 0.09);
+  --pro-shadow-btn: 0 2px 8px rgba(30, 64, 175, 0.25);
+  --pro-font-body: "Inter", -apple-system, system-ui, sans-serif;
+  --pro-font-mono: "IBM Plex Mono", monospace;
+
+  background: var(--pro-paper);
+  color: var(--pro-ink);
+  font-family: var(--pro-font-body);
+  min-height: 100vh;
+}
