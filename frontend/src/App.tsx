@@ -19,6 +19,7 @@ import ProSessionLayout from "./pro/components/ProSessionLayout";
 import ProDashboardPage from "./pro/pages/ProDashboardPage";
 import ProRecommendationsPage from "./pro/pages/ProRecommendationsPage";
 import ProHistoryPage from "./pro/pages/ProHistoryPage";
+import ProOverviewPage from "./pro/pages/ProOverviewPage";
 
 function ClassicApp() {
   return (
@@ -52,6 +53,7 @@ function ProApp() {
           <Route index element={<ProDashboardPage />} />
           <Route path="recommend" element={<ProRecommendationsPage />} />
           <Route path="history" element={<ProHistoryPage />} />
+          <Route path="overview" element={<ProOverviewPage />} />
         </Route>
       </Routes>
     </ProAppShell>
