@@ -348,14 +348,19 @@ component or a CSS scope at runtime, only the code they both import.
 `ProHistoryPage`, `ProOverviewPage`, `ProExplainPage`,
 `ProComparePage`, `ProValidatePage`, `ProSettingsPage`,
 `ProBudgetPage`), and `components/` holds the four shell pieces:
-`ProAppShell` (the background/motion wrapper, standing in for
-`AppShell`), `ProCommandPalette` (standing in for `CommandPalette`),
-`ProAccuracyChart` (standing in for `AccuracyChart`), and
-`ProSessionLayout` (standing in for `SessionLayout`, with its own
-fixed left sidebar). Nothing about what the app knows or does was
-rebuilt: every Pro page imports the same typed functions from
-`src/api/client.ts`, and the same pure-logic modules —
-`sessionSort.ts`, `costProjection.ts`, `commandFilter.ts` — that the
+`ProAppShell` (a plain, motion-free wrapper standing in for
+`AppShell` — it has no background texture and no motion effects at
+all, in deliberate contrast to the classic `AppShell`'s background
+grid, scan-line sweep, and cursor-reactive glow), `ProCommandPalette`
+(standing in for `CommandPalette`), `ProAccuracyChart` (standing in
+for `AccuracyChart`), and `ProSessionLayout` (standing in for
+`SessionLayout`, with its own in-flow, sticky-positioned (`position:
+sticky; top: 2rem`) sidebar card rather than the classic app's
+fixed-to-viewport full-height sidebar). Nothing about what the app
+knows or does was rebuilt: every Pro page imports the same typed
+functions from `src/api/client.ts`, and the same pure-logic modules —
+`sessionSort.ts`, `costProjection.ts`, `commandFilter.ts`,
+`budgetChartData.ts`, `chartData.ts`, `useCountUp.ts` — that the
 classic pages already used, unchanged. The Pro tree is presentation
 only: new components, new CSS, no new endpoints, no new data-fetching
 logic, and the same page-level behaviors the classic app already got
@@ -368,8 +373,9 @@ and IBM Plex Mono for numerics (both from Google Fonts, matching the
 classic app's CDN-not-inlined approach), a flat light `--pro-paper`
 background (`#f8fafc`) rather than the classic app's near-black paper,
 with navy-to-blue `linear-gradient(135deg, ...)` accents (`--pro-accent`
-`#1e40af` to `--pro-accent-bright` `#2563eb`) reused across buttons, page
-headings, the active-nav pill, and the command palette's icon — its own
+`#1e40af` to `--pro-accent-bright` `#2563eb`) reused across buttons, the
+active-nav pill, the command palette's selected row, and gradient-filled
+stat/number values (headings stay flat `var(--pro-ink)`) — its own
 `--pro-*`-prefixed CSS custom properties (`frontend/src/pro/styles/
 tokens.css`, scoped under a `.pro-root` class) kept separate from
 `tokens.css` so the two themes can never bleed into each other by

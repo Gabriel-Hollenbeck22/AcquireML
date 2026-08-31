@@ -49,12 +49,12 @@
   cursor: pointer;
 }
 
-.selected {
+.list li.selected {
   background: linear-gradient(135deg, var(--pro-accent), var(--pro-accent-bright));
   color: #ffffff;
 }
 
-.noResults {
+.list li.noResults {
   color: var(--pro-ink-faint);
   cursor: default;
 }

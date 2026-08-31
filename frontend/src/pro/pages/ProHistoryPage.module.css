@@ -22,6 +22,7 @@
   color: var(--pro-accent);
   font-weight: 600;
   font-size: 0.8rem;
+  font-family: var(--pro-font-body);
   cursor: pointer;
   transition: border-color 0.15s ease;
 }

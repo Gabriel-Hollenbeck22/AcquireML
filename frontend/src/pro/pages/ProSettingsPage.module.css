@@ -72,6 +72,7 @@
   color: #ffffff;
   font-weight: 600;
   font-size: 0.85rem;
+  font-family: var(--pro-font-body);
   cursor: pointer;
   box-shadow: var(--pro-shadow-btn);
   transition: box-shadow 0.15s ease, transform 0.15s ease;
@@ -115,6 +116,7 @@
   color: var(--pro-neg-ink);
   font-weight: 600;
   font-size: 0.8rem;
+  font-family: var(--pro-font-body);
   cursor: pointer;
   margin-right: 0.6rem;
   transition: background-color 0.15s ease;
