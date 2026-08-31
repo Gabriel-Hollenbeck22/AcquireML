@@ -1,0 +1,130 @@
+.title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0 0 1rem 0;
+  color: var(--pro-ink);
+}
+
+.loading,
+.error {
+  font-family: var(--pro-font-mono);
+  color: var(--pro-ink-soft);
+}
+
+.error {
+  color: var(--pro-neg-ink);
+}
+
+.form {
+  max-width: 420px;
+  margin-bottom: 2rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+
+.field label {
+  font-size: 0.8rem;
+  color: var(--pro-ink-soft);
+  font-weight: 600;
+}
+
+.field input,
+.field select {
+  font-family: var(--pro-font-body);
+  font-size: 0.88rem;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--pro-line);
+  border-radius: var(--pro-radius-sm);
+  background: var(--pro-surface);
+  color: var(--pro-ink);
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.field input:focus,
+.field select:focus {
+  outline: none;
+  border-color: var(--pro-accent);
+}
+
+.checkboxField {
+  margin-bottom: 1rem;
+  font-size: 0.85rem;
+  color: var(--pro-ink-soft);
+}
+
+.checkboxField input {
+  margin-right: 0.4rem;
+}
+
+.submit {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.6rem 1.3rem;
+  border: none;
+  border-radius: var(--pro-radius-sm);
+  background: linear-gradient(135deg, var(--pro-accent), var(--pro-accent-bright));
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  box-shadow: var(--pro-shadow-btn);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.submit:hover:not(:disabled) {
+  box-shadow: 0 4px 14px rgba(30, 64, 175, 0.35);
+  transform: translateY(-1px);
+}
+
+.submit:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.saveMessage {
+  font-size: 0.8rem;
+  color: var(--pro-pos-ink);
+  margin-top: 0.6rem;
+}
+
+.dangerZone {
+  border: 1px solid var(--pro-neg-bg);
+  border-radius: var(--pro-radius-md);
+  background: var(--pro-neg-bg);
+  padding: 1rem 1.2rem;
+  max-width: 420px;
+}
+
+.dangerZone h3 {
+  margin: 0 0 0.7rem 0;
+  font-size: 0.9rem;
+  color: var(--pro-neg-ink);
+}
+
+.dangerButton {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--pro-neg-ink);
+  border-radius: var(--pro-radius-sm);
+  background: var(--pro-surface);
+  color: var(--pro-neg-ink);
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  margin-right: 0.6rem;
+  transition: background-color 0.15s ease;
+}
+
+.dangerButton:hover:not(:disabled) {
+  background: var(--pro-neg-bg);
+}
+
+.dangerButton:disabled {
+  opacity: 0.6;
+  cursor: default;
+}

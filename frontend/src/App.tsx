@@ -23,6 +23,7 @@ import ProOverviewPage from "./pro/pages/ProOverviewPage";
 import ProExplainPage from "./pro/pages/ProExplainPage";
 import ProComparePage from "./pro/pages/ProComparePage";
 import ProValidatePage from "./pro/pages/ProValidatePage";
+import ProSettingsPage from "./pro/pages/ProSettingsPage";
 
 function ClassicApp() {
   return (
@@ -60,6 +61,7 @@ function ProApp() {
           <Route path="explain" element={<ProExplainPage />} />
           <Route path="compare" element={<ProComparePage />} />
           <Route path="validate" element={<ProValidatePage />} />
+          <Route path="settings" element={<ProSettingsPage />} />
         </Route>
       </Routes>
     </ProAppShell>
