@@ -15,6 +15,8 @@ import BudgetPage from "./pages/BudgetPage";
 import ProAppShell from "./pro/components/ProAppShell";
 import ProSessionListPage from "./pro/pages/ProSessionListPage";
 import ProNewSessionPage from "./pro/pages/ProNewSessionPage";
+import ProSessionLayout from "./pro/components/ProSessionLayout";
+import ProDashboardPage from "./pro/pages/ProDashboardPage";
 
 function ClassicApp() {
   return (
@@ -44,6 +46,9 @@ function ProApp() {
       <Routes>
         <Route path="/" element={<ProSessionListPage />} />
         <Route path="/new" element={<ProNewSessionPage />} />
+        <Route path="/sessions/:name" element={<ProSessionLayout />}>
+          <Route index element={<ProDashboardPage />} />
+        </Route>
       </Routes>
     </ProAppShell>
   );
