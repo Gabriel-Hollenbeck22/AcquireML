@@ -1,0 +1,105 @@
+.title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0 0 1rem 0;
+  color: var(--pro-ink);
+}
+
+.loading,
+.error {
+  font-family: var(--pro-font-mono);
+  color: var(--pro-ink-soft);
+}
+
+.error {
+  color: var(--pro-neg-ink);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--pro-surface);
+  border-radius: var(--pro-radius-md);
+  overflow: hidden;
+  box-shadow: var(--pro-shadow-sm);
+  font-size: 0.82rem;
+  margin-bottom: 1rem;
+}
+
+.table th {
+  text-align: left;
+  padding: 0.6rem 0.8rem;
+  color: var(--pro-ink-faint);
+  font-weight: 600;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--pro-line);
+}
+
+.table td {
+  padding: 0.55rem 0.8rem;
+  border-bottom: 1px solid var(--pro-line-soft);
+  font-family: var(--pro-font-mono);
+  color: var(--pro-ink);
+}
+
+.table tbody tr:hover td {
+  background: var(--pro-line-soft);
+}
+
+.table select {
+  font-family: var(--pro-font-body);
+  font-size: 0.8rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--pro-line);
+  border-radius: var(--pro-radius-sm);
+  background: var(--pro-surface);
+  color: var(--pro-ink);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.submit {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.6rem 1.3rem;
+  border: none;
+  border-radius: var(--pro-radius-sm);
+  background: linear-gradient(135deg, var(--pro-accent), var(--pro-accent-bright));
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  box-shadow: var(--pro-shadow-btn);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.submit:hover:not(:disabled) {
+  box-shadow: 0 4px 14px rgba(30, 64, 175, 0.35);
+  transform: translateY(-1px);
+}
+
+.submit:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.submitError {
+  font-size: 0.8rem;
+  color: var(--pro-neg-ink);
+  background: var(--pro-neg-bg);
+  border-radius: var(--pro-radius-sm);
+  padding: 0.5rem 0.7rem;
+  margin-top: 0.75rem;
+}
