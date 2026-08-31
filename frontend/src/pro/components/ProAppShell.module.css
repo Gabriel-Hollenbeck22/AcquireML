@@ -1,0 +1,25 @@
+.shell {
+  position: relative;
+}
+
+.paletteHint {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  z-index: 10;
+  background: var(--pro-surface);
+  border: 1px solid var(--pro-line);
+  border-radius: var(--pro-radius-sm);
+  padding: 6px 10px;
+  font-family: var(--pro-font-mono);
+  font-size: 0.8rem;
+  color: var(--pro-ink-faint);
+  cursor: pointer;
+  box-shadow: var(--pro-shadow-sm);
+  transition: color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.paletteHint:hover {
+  color: var(--pro-accent);
+  box-shadow: var(--pro-shadow-md);
+}
