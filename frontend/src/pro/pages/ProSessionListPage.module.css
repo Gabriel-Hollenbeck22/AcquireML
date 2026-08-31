@@ -1,0 +1,122 @@
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2.5rem clamp(2rem, 4vw, 4rem);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.header h1 {
+  font-size: 1.5rem;
+}
+
+.newLink {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 1.1rem;
+  border-radius: var(--pro-radius-sm);
+  background: linear-gradient(135deg, var(--pro-accent), var(--pro-accent-bright));
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-decoration: none;
+  box-shadow: var(--pro-shadow-btn);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.newLink:hover {
+  box-shadow: 0 4px 14px rgba(30, 64, 175, 0.35);
+  transform: translateY(-1px);
+}
+
+.sortRow {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1.25rem;
+  font-size: 0.8rem;
+  color: var(--pro-ink-soft);
+}
+
+.sortRow select {
+  font-family: var(--pro-font-body);
+  font-size: 0.82rem;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid var(--pro-line);
+  border-radius: var(--pro-radius-sm);
+  background: var(--pro-surface);
+  color: var(--pro-ink);
+}
+
+.loading,
+.error,
+.empty {
+  font-family: var(--pro-font-mono);
+  color: var(--pro-ink-soft);
+}
+
+.error {
+  color: var(--pro-neg-ink);
+}
+
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.sessionCard {
+  display: block;
+  background: var(--pro-surface);
+  border-radius: var(--pro-radius-md);
+  box-shadow: var(--pro-shadow-sm);
+  padding: 1.1rem 1.2rem;
+  text-decoration: none;
+  color: inherit;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.sessionCard:hover {
+  box-shadow: var(--pro-shadow-md);
+  transform: translateY(-2px);
+}
+
+.sessionName {
+  font-weight: 700;
+  font-size: 1rem;
+  margin-bottom: 0.8rem;
+  color: var(--pro-ink);
+}
+
+.statRow {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.stat {
+  flex: 1;
+}
+
+.statValue {
+  font-family: var(--pro-font-mono);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--pro-ink);
+}
+
+.highAccuracy {
+  color: var(--pro-pos-ink);
+}
+
+.statLabel {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--pro-ink-faint);
+  margin-top: 0.15rem;
+}

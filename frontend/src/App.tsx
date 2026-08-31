@@ -12,27 +12,50 @@ import ComparePage from "./pages/ComparePage";
 import ValidatePage from "./pages/ValidatePage";
 import SettingsPage from "./pages/SettingsPage";
 import BudgetPage from "./pages/BudgetPage";
+import ProAppShell from "./pro/components/ProAppShell";
+import ProSessionListPage from "./pro/pages/ProSessionListPage";
+import ProNewSessionPage from "./pro/pages/ProNewSessionPage";
+
+function ClassicApp() {
+  return (
+    <AppShell>
+      <Routes>
+        <Route path="/" element={<SessionListPage />} />
+        <Route path="/new" element={<NewSessionPage />} />
+        <Route path="/sessions/:name" element={<SessionLayout />}>
+          <Route index element={<DashboardPage />} />
+          <Route path="recommend" element={<RecommendationsPage />} />
+          <Route path="history" element={<HistoryPage />} />
+          <Route path="overview" element={<OverviewPage />} />
+          <Route path="explain" element={<ExplainPage />} />
+          <Route path="compare" element={<ComparePage />} />
+          <Route path="validate" element={<ValidatePage />} />
+          <Route path="settings" element={<SettingsPage />} />
+          <Route path="budget" element={<BudgetPage />} />
+        </Route>
+      </Routes>
+    </AppShell>
+  );
+}
+
+function ProApp() {
+  return (
+    <ProAppShell>
+      <Routes>
+        <Route path="/" element={<ProSessionListPage />} />
+        <Route path="/new" element={<ProNewSessionPage />} />
+      </Routes>
+    </ProAppShell>
+  );
+}
 
 export default function App() {
   return (
     <BrowserRouter>
-      <AppShell>
-        <Routes>
-          <Route path="/" element={<SessionListPage />} />
-          <Route path="/new" element={<NewSessionPage />} />
-          <Route path="/sessions/:name" element={<SessionLayout />}>
-            <Route index element={<DashboardPage />} />
-            <Route path="recommend" element={<RecommendationsPage />} />
-            <Route path="history" element={<HistoryPage />} />
-            <Route path="overview" element={<OverviewPage />} />
-            <Route path="explain" element={<ExplainPage />} />
-            <Route path="compare" element={<ComparePage />} />
-            <Route path="validate" element={<ValidatePage />} />
-            <Route path="settings" element={<SettingsPage />} />
-            <Route path="budget" element={<BudgetPage />} />
-          </Route>
-        </Routes>
-      </AppShell>
+      <Routes>
+        <Route path="/pro/*" element={<ProApp />} />
+        <Route path="/*" element={<ClassicApp />} />
+      </Routes>
     </BrowserRouter>
   );
 }
