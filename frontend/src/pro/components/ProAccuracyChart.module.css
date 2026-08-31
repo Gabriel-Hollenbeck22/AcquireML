@@ -1,0 +1,30 @@
+.card {
+  background: var(--pro-surface);
+  border-radius: var(--pro-radius-md);
+  box-shadow: var(--pro-shadow-sm);
+  padding: 16px 18px;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.head h4 {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--pro-ink);
+}
+
+.legend {
+  font-family: var(--pro-font-mono);
+  font-size: 0.7rem;
+  color: var(--pro-accent);
+}
+
+.chartWrap {
+  width: 100%;
+}
