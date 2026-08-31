@@ -21,6 +21,7 @@ import ProRecommendationsPage from "./pro/pages/ProRecommendationsPage";
 import ProHistoryPage from "./pro/pages/ProHistoryPage";
 import ProOverviewPage from "./pro/pages/ProOverviewPage";
 import ProExplainPage from "./pro/pages/ProExplainPage";
+import ProComparePage from "./pro/pages/ProComparePage";
 
 function ClassicApp() {
   return (
@@ -56,6 +57,7 @@ function ProApp() {
           <Route path="history" element={<ProHistoryPage />} />
           <Route path="overview" element={<ProOverviewPage />} />
           <Route path="explain" element={<ProExplainPage />} />
+          <Route path="compare" element={<ProComparePage />} />
         </Route>
       </Routes>
     </ProAppShell>

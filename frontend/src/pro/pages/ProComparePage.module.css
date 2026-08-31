@@ -1,0 +1,90 @@
+.title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+  color: var(--pro-ink);
+}
+
+.intro {
+  font-size: 0.85rem;
+  color: var(--pro-ink-soft);
+  max-width: 640px;
+  margin: 0 0 1rem 0;
+}
+
+.error {
+  font-family: var(--pro-font-mono);
+  color: var(--pro-neg-ink);
+}
+
+.runButton {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.6rem 1.3rem;
+  border: none;
+  border-radius: var(--pro-radius-sm);
+  background: linear-gradient(135deg, var(--pro-accent), var(--pro-accent-bright));
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  box-shadow: var(--pro-shadow-btn);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+  margin-bottom: 1rem;
+}
+
+.runButton:hover:not(:disabled) {
+  box-shadow: 0 4px 14px rgba(30, 64, 175, 0.35);
+  transform: translateY(-1px);
+}
+
+.runButton:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.chartCard {
+  background: var(--pro-surface);
+  border-radius: var(--pro-radius-md);
+  box-shadow: var(--pro-shadow-sm);
+  padding: 1rem 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.chartHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.4rem;
+}
+
+.chartHead h4 {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--pro-ink);
+}
+
+.chartLegend {
+  display: flex;
+  gap: 0.8rem;
+  font-family: var(--pro-font-mono);
+  font-size: 0.68rem;
+}
+
+.legendActual {
+  color: var(--pro-accent);
+}
+
+.legendProjected {
+  color: var(--pro-ink-soft);
+}
+
+.summary {
+  font-size: 0.85rem;
+  color: var(--pro-ink-soft);
+}
+
+.summaryValue {
+  color: var(--pro-ink);
+}
