@@ -334,6 +334,47 @@ name — every nav link's real accessible name was "› Dashboard", "›
 Recommendations", etc., found and fixed by swapping it for a
 border-drawn triangle (`content: ""`) so it's purely decorative.
 
+A later plan (branch `feature/web-ui-pro-theme`) added a second, parallel
+visual theme for the same app rather than restyling the existing one: a
+"Pro" theme reachable at `/pro/*`, alongside the classic dark
+electric-blue app which stays mounted at `/` completely unchanged.
+`App.tsx` picks between the two entirely at the router level — a
+top-level `<Routes>` sends every `/pro*` path to `ProApp` and everything
+else to the existing `ClassicApp`, so the two never share a layout
+component or a CSS scope at runtime, only the code they both import.
+`frontend/src/pro/` mirrors the classic app's shape one-for-one:
+`pages/` holds all eleven routed pages (`ProSessionListPage`,
+`ProNewSessionPage`, `ProDashboardPage`, `ProRecommendationsPage`,
+`ProHistoryPage`, `ProOverviewPage`, `ProExplainPage`,
+`ProComparePage`, `ProValidatePage`, `ProSettingsPage`,
+`ProBudgetPage`), and `components/` holds the four shell pieces:
+`ProAppShell` (the background/motion wrapper, standing in for
+`AppShell`), `ProCommandPalette` (standing in for `CommandPalette`),
+`ProAccuracyChart` (standing in for `AccuracyChart`), and
+`ProSessionLayout` (standing in for `SessionLayout`, with its own
+fixed left sidebar). Nothing about what the app knows or does was
+rebuilt: every Pro page imports the same typed functions from
+`src/api/client.ts`, and the same pure-logic modules —
+`sessionSort.ts`, `costProjection.ts`, `commandFilter.ts` — that the
+classic pages already used, unchanged. The Pro tree is presentation
+only: new components, new CSS, no new endpoints, no new data-fetching
+logic, and the same page-level behaviors the classic app already got
+right (Compare's click-to-run instead of fetch-on-mount, the
+StrictMode double-fetch guard on Recommendations, the `window.confirm`
+gate on Settings' danger zone, Budget's conditional nav visibility).
+The Pro identity is named "Navy Instrument" — a light, cooler-toned
+counterpart to the classic app's dark electric blue: Inter for UI text
+and IBM Plex Mono for numerics (both from Google Fonts, matching the
+classic app's CDN-not-inlined approach), a flat light `--pro-paper`
+background (`#f8fafc`) rather than the classic app's near-black paper,
+with navy-to-blue `linear-gradient(135deg, ...)` accents (`--pro-accent`
+`#1e40af` to `--pro-accent-bright` `#2563eb`) reused across buttons, page
+headings, the active-nav pill, and the command palette's icon — its own
+`--pro-*`-prefixed CSS custom properties (`frontend/src/pro/styles/
+tokens.css`, scoped under a `.pro-root` class) kept separate from
+`tokens.css` so the two themes can never bleed into each other by
+accident. Frontend test count: 108 → 166.
+
 ## Feature Roadmap
 
 Building one at a time, each on its own branch, merged to main once 100% tested:
