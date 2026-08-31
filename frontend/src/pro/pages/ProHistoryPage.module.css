@@ -1,0 +1,75 @@
+.title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--pro-ink);
+}
+
+.headerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.exportButton {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.45rem 0.9rem;
+  border: 1px solid var(--pro-line);
+  border-radius: var(--pro-radius-sm);
+  background: var(--pro-surface);
+  color: var(--pro-accent);
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.exportButton:hover {
+  border-color: var(--pro-accent);
+}
+
+.loading,
+.error,
+.empty {
+  font-family: var(--pro-font-mono);
+  color: var(--pro-ink-soft);
+}
+
+.error {
+  color: var(--pro-neg-ink);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--pro-surface);
+  border-radius: var(--pro-radius-md);
+  overflow: hidden;
+  box-shadow: var(--pro-shadow-sm);
+  font-size: 0.8rem;
+  margin-top: 1rem;
+}
+
+.table th {
+  text-align: left;
+  padding: 0.6rem 0.8rem;
+  color: var(--pro-ink-faint);
+  font-weight: 600;
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--pro-line);
+}
+
+.table td {
+  padding: 0.55rem 0.8rem;
+  border-bottom: 1px solid var(--pro-line-soft);
+  font-family: var(--pro-font-mono);
+  color: var(--pro-ink);
+}
+
+.table tbody tr:hover td {
+  background: var(--pro-line-soft);
+}
