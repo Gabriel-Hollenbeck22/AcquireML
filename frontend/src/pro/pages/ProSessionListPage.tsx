@@ -34,14 +34,51 @@ export default function ProSessionListPage() {
     };
   }, []);
 
+  const sessions = state.status === "loaded" ? state.sessions : [];
+  const accuracies = sessions
+    .map((s) => s.latest_accuracy)
+    .filter((a): a is number => a !== null);
+  const avgAccuracy = accuracies.length > 0
+    ? accuracies.reduce((sum, a) => sum + a, 0) / accuracies.length
+    : null;
+  const totalKnown = sessions.reduce((sum, s) => sum + s.n_known, 0);
+  const totalPool = sessions.reduce((sum, s) => sum + s.n_pool, 0);
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h1>Sessions</h1>
+        <div>
+          <div className={styles.eyebrow}>Portfolio</div>
+          <h1>Sessions</h1>
+          <p className={styles.subtitle}>Track active learning progress across every experiment.</p>
+        </div>
         <Link to="/pro/new" className={styles.newLink}>
           New session
         </Link>
       </div>
+
+      {state.status === "loaded" && state.sessions.length > 0 && (
+        <div className={styles.summaryRow}>
+          <div className={styles.summaryStat}>
+            <div className={styles.summaryValue}>{sessions.length}</div>
+            <div className={styles.summaryLabel}>Sessions</div>
+          </div>
+          <div className={styles.summaryStat}>
+            <div className={styles.summaryValue}>{totalKnown}</div>
+            <div className={styles.summaryLabel}>Known samples</div>
+          </div>
+          <div className={styles.summaryStat}>
+            <div className={styles.summaryValue}>{totalPool}</div>
+            <div className={styles.summaryLabel}>In pool</div>
+          </div>
+          <div className={styles.summaryStat}>
+            <div className={styles.summaryValue}>
+              {avgAccuracy !== null ? `${(avgAccuracy * 100).toFixed(1)}%` : "—"}
+            </div>
+            <div className={styles.summaryLabel}>Avg. accuracy</div>
+          </div>
+        </div>
+      )}
 
       {state.status === "loaded" && state.sessions.length > 0 && (
         <div className={styles.sortRow}>
@@ -59,7 +96,15 @@ export default function ProSessionListPage() {
       {state.status === "error" && <p className={styles.error}>{state.message}</p>}
 
       {state.status === "loaded" && state.sessions.length === 0 && (
-        <p className={styles.empty}>No sessions yet — create one to get started.</p>
+        <div className={styles.emptyState}>
+          <div className={styles.emptyTitle}>No sessions yet</div>
+          <p className={styles.emptyBody}>
+            Create a session to start recommending experiments from your data.
+          </p>
+          <Link to="/pro/new" className={styles.newLink}>
+            New session
+          </Link>
+        </div>
       )}
 
       {state.status === "loaded" && state.sessions.length > 0 && (
@@ -70,12 +115,11 @@ export default function ProSessionListPage() {
               to={`/pro/sessions/${session.name}`}
               className={styles.sessionCard}
             >
-              <div className={styles.sessionName}>{session.name}</div>
+              <div className={styles.cardTop}>
+                <div className={styles.sessionName}>{session.name}</div>
+                <div className={styles.roundBadge}>Round {session.current_round}</div>
+              </div>
               <div className={styles.statRow}>
-                <div className={styles.stat}>
-                  <div className={styles.statValue}>{session.current_round}</div>
-                  <div className={styles.statLabel}>Round</div>
-                </div>
                 <div className={styles.stat}>
                   <div className={styles.statValue}>{session.n_known}</div>
                   <div className={styles.statLabel}>Known</div>

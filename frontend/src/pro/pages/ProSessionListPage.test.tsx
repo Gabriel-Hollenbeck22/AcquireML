@@ -32,10 +32,11 @@ describe("ProSessionListPage", () => {
     await waitFor(() => {
       expect(screen.getByText("azm-project")).toBeInTheDocument();
     });
-    expect(screen.getByText("2")).toBeInTheDocument();
-    expect(screen.getByText("45")).toBeInTheDocument();
-    expect(screen.getByText("55")).toBeInTheDocument();
-    expect(screen.getByText("93.0%")).toBeInTheDocument();
+    const card = screen.getByRole("link", { name: /azm-project/i });
+    expect(card).toHaveTextContent("Round 2");
+    expect(card).toHaveTextContent("45");
+    expect(card).toHaveTextContent("55");
+    expect(card).toHaveTextContent("93.0%");
   });
 
   it("shows an empty state when there are no sessions", async () => {
