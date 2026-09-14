@@ -6,6 +6,7 @@ Session method call and its return dict into a Pydantic response model.
 """
 from __future__ import annotations
 
+import os
 import shutil
 import tempfile
 import uuid
@@ -37,11 +38,17 @@ from acquireml.session import Session
 app = FastAPI(title="AcquireML Web UI API")
 
 # The React dev server (Vite) runs on a different port than uvicorn; the
-# browser enforces CORS between them. Local-only tool, so allowing the
-# standard Vite dev ports is enough — no production/hosted origin exists yet.
+# browser enforces CORS between them. The standard Vite dev ports are always
+# allowed; the deployed frontend's origin (e.g. https://acquireml.vercel.app)
+# is added via ACQUIREML_ALLOWED_ORIGINS (comma-separated) so this file
+# doesn't need to change between local dev and production.
+_allowed_origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
+_extra_origins = os.environ.get("ACQUIREML_ALLOWED_ORIGINS", "")
+_allowed_origins += [origin.strip() for origin in _extra_origins.split(",") if origin.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=_allowed_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )

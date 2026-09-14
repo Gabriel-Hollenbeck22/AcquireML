@@ -1,0 +1,15 @@
+.git
+frontend/node_modules
+frontend
+docs
+data
+tests
+*.png
+*.db
+*.pyc
+__pycache__
+.pytest_cache
+.venv
+venv
+notebooks
+*.ipynb

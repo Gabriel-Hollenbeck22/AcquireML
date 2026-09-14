@@ -1,4 +1,7 @@
-export const API_BASE_URL = "http://localhost:8000";
+// In production (Vercel), VITE_API_BASE_URL is set at build time to the
+// deployed backend's URL. Locally it's unset, so this falls back to the
+// dev backend started by `make api`.
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
 export interface SessionSummary {
   name: string;
