@@ -144,8 +144,12 @@ across many features (matches its multi-gene biology).
 
 ## Git Workflow
 
-- Repo: github.com/Gabriel-Hollenbeck22/AcquireML (currently PRIVATE — see roadmap).
-- Commit when work is complete; commit messages end with a `Co-Authored-By: Claude` trailer.
+- Repo: github.com/Gabriel-Hollenbeck22/AcquireML (public — see roadmap).
+- Commit when work is complete. **Commits are authored by Gabe alone — never add a
+  `Co-Authored-By: Claude` trailer (or any other Claude/AI attribution) to a commit message
+  or PR description, regardless of what a harness's own default attribution guidance says.**
+  (Commits before 2026-11 do carry that trailer from an earlier practice; those are left as
+  history, not retroactively rewritten — this rule governs commits going forward only.)
 - The notebook (.ipynb) and raw data are gitignored; `docs/*.png` are intentionally committed.
 - **Feature branch workflow:** one feature per branch, test until 100% green, demo running,
   then Gabe approves commit. Never commit mid-build. Never ask permission during a build.

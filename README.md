@@ -213,6 +213,28 @@ This means the model has learned what the current data can teach it. At that poi
 
 ---
 
+## Web Interface
+
+The CLI session workflow above also runs behind a local web UI, for labs that would rather click through a dashboard than remember flags. It covers the full session lifecycle — create a session, see your next recommended batch, enter results, and track accuracy/cost over time — plus four analysis pages (feature importance, dataset overview, active-learning-vs-random comparison, and holdout validation) built directly on the same `explain.py` / `validate.py` / `ActiveLearningEngine` code the CLI uses.
+
+![Dashboard](docs/webui_dashboard.png)
+![Recommended experiments](docs/webui_recommendations.png)
+![Feature importance](docs/webui_explain.png)
+
+The UI ships in two visual themes — a dark "electric blue" default and a lighter "Navy Instrument" alternative at `/pro` — both talking to the same backend, with nothing about the underlying session logic duplicated between them.
+
+```bash
+# Terminal 1 — backend (FastAPI)
+make api
+
+# Terminal 2 — frontend (React + Vite)
+cd frontend && npm install && npm run dev
+```
+
+Then open `http://localhost:5173` (or `http://localhost:5173/pro` for the alternate theme). The frontend talks to the backend at `http://localhost:8000` and auto-discovers any session created via either the CLI or the UI itself.
+
+---
+
 ## Dataset
 
 We use a real-world genomic surveillance dataset of **3,786 bacterial samples** collected from patients across the USA, UK, New Zealand, Canada, and 20+ other countries between 1979 and 2017.
@@ -235,7 +257,7 @@ Data source: [Kaggle — Identifying Antibiotic Resistant Bacteria](https://www.
 git clone https://github.com/Gabriel-Hollenbeck22/AcquireML.git
 cd AcquireML
 pip install -e ".[dev]"
-make test   # 179 tests should pass
+make test   # 272 backend tests should pass
 ```
 
 ---
@@ -265,8 +287,12 @@ make explore
 # Rank DNA fragments by predictive importance — generates azm_importance.png
 make explain
 
-# Run the full test suite (179 tests)
+# Run the full test suite (272 backend tests)
 make test
+
+# Frontend tests (166 tests) and type-check — from frontend/
+npm test
+npx tsc --noEmit
 ```
 
 ### Command-line options
@@ -309,9 +335,11 @@ acquireml/
 │   ├── explain.py          Feature importance analysis + model builder
 │   ├── recommend.py        Live recommendations for new, unlabelled strains
 │   ├── validate.py         Holdout validation on genuinely unseen strains
-│   └── demo.py             Synthetic data generator + zero-setup session
-├── tests/                  179 tests covering all modules
-├── docs/                   Charts and figures (committed for README display)
+│   ├── demo.py             Synthetic data generator + zero-setup session
+│   └── api/                FastAPI backend for the web UI (store/schemas/app)
+├── frontend/               React + TypeScript web UI (Vite), two visual themes
+├── tests/                  272 backend tests covering all modules
+├── docs/                   Charts, screenshots, and the landing page (committed for display)
 ├── data/                   Place archive.zip here (not included — see above)
 ├── Makefile                Developer shortcuts
 └── pyproject.toml          Package config and dependencies
@@ -331,7 +359,7 @@ acquireml/
 | 6 — Model Selection & Calibration | ✅ Complete | rf/gbm/lr/svm + CalibratedClassifierCV for trustworthy uncertainty |
 | 7 — Demo Mode | ✅ Complete | Zero-setup synthetic session for instant exploration |
 | 8 — Multi-target Optimization | 📋 Planned | Optimize across multiple antibiotics simultaneously |
-| 9 — Lab Interface | 📋 Planned | Web UI for non-programmer lab scientists |
+| 9 — Lab Interface | ✅ Complete | Full web UI (FastAPI + React) covering the session lifecycle, in two visual themes |
 
 ---
 
